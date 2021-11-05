@@ -97,7 +97,7 @@ uint8_t mem_loadRom(char* path)
     fclose(romFile);
 
     mem.cartType = mem.loadedRom[0x147];
-    mem.cartRomSize = mem.loadedRom[0x148];
+    mem.cartRomSize = 1 << mem.loadedRom[0x148];
     mem.cartRamSize = mem.loadedRom[0x149];
 
 
@@ -169,8 +169,13 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
             // rombank = secBank << 5 + rombanks
             // cannot be 0 -> 1
             // if RomBank & 0xF = 0-> rombank+1
+            mem.activeRomBank &= ~(0x1F);
+            mem.activeRomBank |= val & 0x1F; 
             break;
         case 0x4000 ... 0x7FFF:  // Rom bank switching
+            
+            mem.activeRomBank &= ~(0x60);
+            mem.activeRomBank |= (val << 5) & 0x60; 
             break;
         case 0x8000 ... 0x9FFF:  // VRAM
             mem.vRam[ adr - 0x8000] = val;

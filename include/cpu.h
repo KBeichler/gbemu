@@ -3,11 +3,11 @@
 
 #include <gb.h>
 
-/*
+
 // ACCESS FUNCTIONS
 #define REG(r) cpu.r
-#define READMEM(mr) break;
-#define WRITEMEM(mr) break;
+//#define READMEM(adr) mem_read(adr);
+//#define WRITEMEM(adr, val) mem_write(mr, val;
 #define FLAG(f) cpu.f
 
 
@@ -17,7 +17,9 @@
 // LD_R_R
 // D Destination, S source
 #define LD_R_n(D, S)  D = S
-#define LD_R_nn(D) { D = (MEM(REG(PC++)) | (MEM(REG(PC++))  << 8) );  }
+#define LD_R_nn(D) { D = ( mem_read(REG(PC)++) | mem_read(REG(PC)++)  << 8) ;  }
+
+#define LD_MEM_n(D, S)  mem_write(D, S);
 
 
 
@@ -36,7 +38,7 @@
 
 #define CP_R(S)       { uint8_t i = S; FLAG(N) = 1; FLAG(Z) = ( REG(A) == i ); FLAG(CY) = REG(A) < i; FLAG(HC) = ((REG(A) & 0xF) < (i & 0xF)); }
 
-#define ADD_SP        { FLAG(Z) = FLAG(N) = 0; uint8_t i = MEM(REG(PC++)); REG(SP += (int8_t) i;)}
+#define ADD_SP        { FLAG(Z) = FLAG(N) = 0; uint8_t i = mem_read(REG(PC)++); REG(SP += (int8_t) i;)}
 // 16 BIT ARITHEMITC
 // S = Register
 #define INC_RR(S)     { S++;  }
@@ -45,9 +47,9 @@
 
 // JMP AND CALL 
 // F = Condition to execute
-#define JMP_n(F)      {  uint8_t i = MEM(REG(PC)++); if (F) {REG(PC) += (int8_t) i; cpu->cycle += 3;} }
-#define JMP_nn(F)     { uint16_t i = MEM(REG(PC++)); i |= (MEM(REG(PC++)) << 8); if (F) {REG(PC) = i; cpu->cycle += 1;} ;}
-#define CALL(F)       { uint16_t i = MEM(REG(PC++)); i |= (MEM(REG(PC++)) << 8);  PUSH(REG(PC)); if (F) {REG(PC) = i; cpu->cycle += 3;} ; }
+#define JMP_n(F)      {  uint8_t i = mem_read(REG(PC)++); if (F) {REG(PC) += (int8_t) i; cpu->cycle += 3;} }
+#define JMP_nn(F)     { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8); if (F) {REG(PC) = i; cpu->cycle += 1;} ;}
+#define CALL(F)       { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8);  PUSH(REG(PC)); if (F) {REG(PC) = i; cpu->cycle += 3;} ; }
 #define RET(F)        { if (F) { POP(REG(PC)); cpu->cycle += 4; }; }
 
 // SHIFT OPERATIONS
@@ -64,14 +66,16 @@
 #define BIT(B , S)     { FLAG(N) = 0; FLAG(HC) = 1; FLAG(Z) = !( ( S & (1 << B)) );  }
 
 
-#define PUSH(S)       { MEM(--REG(SP)) = (S >> 8); MEM(--REG(SP))= S & 0xFF ; } 
-#define PUSHA         { MEM(--REG(SP)) = REG(A)  ; MEM(--REG(SP))= FLAG(R); }
-#define POP(D)        { D = MEM(REG(SP++)); D |= MEM(REG(SP++))  << 8;        }
-#define POPA          { FLAG(R) = MEM(REG(SP++)); REG(A) = MEM(REG(SP++));  }
+//#define PUSH(S)       { MEM(--REG(SP)) = (S >> 8); MEM(--REG(SP))= S & 0xFF ; } 
+#define PUSH(S)       { mem_write(--REG(SP),(uint8_t) (S >> 8)); mem_write(--REG(SP), (uint8_t) (S & 0xFF)); } 
+//#define PUSHA         { MEM(--REG(SP)) = REG(A)  ; MEM(--REG(SP))= FLAG(R); }
+//#define PUSHA         { write_mem(--REG(SP), REG(A) ; MEM(--REG(SP))= FLAG(R); }
+#define POP(D)        { D = mem_read(REG(SP)++); D |= mem_read(REG(SP)++)  << 8;        }
+
 #define RST(I)        { PUSH( (REG(PC)-1) );  REG(PC) = 0x0000 + I;           }
 
-#define ENABLE_IRQ    cpu->irq_enable = 1;
-#define DISABLE_IRQ   cpu->irq_enable = 0;
+#define ENABLE_IRQ    cpu.irq_enable = 1;
+#define DISABLE_IRQ   cpu.irq_enable = 0;
 */
 
 
