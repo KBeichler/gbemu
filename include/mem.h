@@ -9,20 +9,21 @@
 typedef struct mem_t
 {
     uint8_t *loadedRom;
+    uint32_t loadedRomLength;
 
     uint8_t activeRomBank;
-    uint8_t activeRAMBank;
+    uint8_t activeRamBank;
 
 	uint8_t cartType;
-	uint8_t cartRomSize;
-	uint8_t cartRamSize;
+	uint8_t cartRomBankCount;
+	uint8_t cartRamBankCount;
 
 
     uint8_t bootRom[0x100];
 
 
-    uint8_t *fixedRom;
-    uint8_t *switchedRom;
+    //uint8_t *fixedRom;
+    //uint8_t *switchedRom;
     uint8_t *eRam;
 
     uint8_t vRam[0x2000];    
@@ -43,16 +44,13 @@ typedef struct mem_t
 
 
 
-
-
-
-
 void mem_init();
 uint8_t mem_read(uint16_t adr);
 uint8_t mem_write(uint16_t adr, uint8_t val);
 uint8_t mem_loadRom(char* path);
 void mem_close();
 
+void mem_setRomBankMBC1(uint16_t adr, uint8_t val);
 
 
 

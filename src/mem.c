@@ -1,7 +1,7 @@
 #include <gb.h>
 #include <mem.h>
 
-
+#define DEBUG
 static uint8_t BOOT_ROM[0x100] = 
 {
 	0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
@@ -28,16 +28,17 @@ static uint8_t BOOT_ROM[0x100] =
 
 
 
-
 mem_t mem;
+
+
 
 
 void mem_init()
 {
     memset((void *) &mem, 0, sizeof(mem_t));
 
-    mem.activeRomBank = 1;
-    mem.activeRAMBank = 1;
+    
+
     memcpy(mem.bootRom, BOOT_ROM, sizeof(BOOT_ROM));
 
     // Powerup seuqence as in Pandocs
@@ -79,7 +80,7 @@ void mem_init()
 
 uint8_t mem_loadRom(char* path)
 {
-    uint32_t filelen; 
+     
     FILE *romFile = fopen( path , "r");
 
     if (romFile == NULL)
@@ -89,18 +90,34 @@ uint8_t mem_loadRom(char* path)
     }
 
     fseek(romFile, 0, SEEK_END);
-    filelen = ftell(romFile);
+    mem.loadedRomLength = ftell(romFile);
     rewind(romFile);  
 
-    mem.loadedRom = malloc(filelen); 
-    fread(mem.loadedRom, filelen, 1, romFile);
+    mem.loadedRom = malloc(mem.loadedRomLength); 
+    fread(mem.loadedRom, mem.loadedRomLength, 1, romFile);
     fclose(romFile);
 
     mem.cartType = mem.loadedRom[0x147];
-    mem.cartRomSize = 1 << mem.loadedRom[0x148];
-    mem.cartRamSize = mem.loadedRom[0x149];
-
-
+    mem.cartRomBankCount = 1 << ( mem.loadedRom[0x148] + 1);
+    mem.activeRomBank = 1;
+    // Allocate external Ram if any
+    // TODO load eram file .sav
+    if (mem.loadedRom[0x149] < 0x06 && mem.loadedRom[0x149] > 1)
+    {
+        mem.cartRamBankCount = 1 << (mem.loadedRom[0x149] -1);
+        mem.eRam = malloc(mem.cartRamBankCount * 0x2000);   
+        mem.activeRamBank = 0;   
+          
+    }
+    else
+    {
+        mem.cartRamBankCount = 0;
+        mem.eRam = NULL;
+    }
+    #ifdef DEBUG
+    printf("Succesfully loaded ROM '%s'\nloaded size %d bytes\n", path, mem.loadedRomLength );
+    printf("External Ram detected: %s  - RAM Size 0x%X\n\n", (mem.cartRamBankCount != 0 ? "YES" : "NO"), 0x2000 * mem.cartRamBankCount);
+    #endif
 
     return 0;
 
@@ -109,6 +126,7 @@ uint8_t mem_loadRom(char* path)
 void mem_close()
 {
     free(mem.loadedRom);
+    free(mem.eRam);
 }
 
 uint8_t mem_read(uint16_t adr)
@@ -118,35 +136,66 @@ uint8_t mem_read(uint16_t adr)
         case 0x0000 ... 0x3FFF: // standard rom
             return mem.loadedRom[adr];
             break;
+
+
         case 0x4000 ... 0x7FFF:  // banked rom
-            return mem.loadedRom[adr + (0x4000 * mem.activeRomBank)];
+            return mem.loadedRom[adr + (0x4000 * (mem.activeRomBank-1) )];
             break;
+
+
         case 0x8000 ... 0x9FFF:  // vram
         return mem.vRam [adr - 0x8000];
             break;
+
+
         case 0xA000 ... 0xBFFF:  // banked vram
+            if (mem.cartRamBankCount != 0)
+            {
+                adr -= 0x4000;
+                return mem.eRam[ adr + (0x2000 * (mem.activeRamBank))];
+            }
+            else
+            {
+                return 0;
+            }
             break;
+
+
         case 0xC000 ... 0xCFFF:  // wram
             return mem.vRam[ adr & 0x0FFF];
             break;
+
+
         case 0xD000 ... 0xDFFF:  // schwitchable wRam
             break;
+
+
         case 0xE000 ... 0xFDFF:  // prohibited
             break;
+
+
         case 0xFE00 ... 0xFE9F:  // oam table
             return mem.oam[adr & 0xFF];
             break;
+
+
         case 0xFEA0 ... 0xFEFF:  // unusable
             break;
         case 0xFF00 ... 0xFF7F:  //io
             return mem.io[adr & 0xFF];
             break;
+
+
         case 0xFF80 ... 0xFFFE:  // high Ram
             return mem.hRam[adr & 0xFF];
             break;
+
+
         case 0xFFFF:             //irq
             return mem.irq;
             break;
+
+
         default:
             break;
     }
@@ -159,50 +208,60 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
 {
     switch (adr)
     {
-        case 0x0000 ... 0x1999:  // eRam Enable 0x0A = Enable
-        
+        case 0x0000 ... 0x1999:  // eRam Enable 0x0A = Enable        
             break;
-        case 0x2000 ... 0x3FFF:  // Rom bank switching 
-            //5bit 0x01 - 0x1F - highe rbits discarded
-            // if val is higher then max number of banks- max bankis selected
-            // if more than 16 banks reg 0x4000-7FFF supplies 2 moire upper bits
-            // rombank = secBank << 5 + rombanks
-            // cannot be 0 -> 1
-            // if RomBank & 0xF = 0-> rombank+1
-            mem.activeRomBank &= ~(0x1F);
-            mem.activeRomBank |= val & 0x1F; 
+
+
+        case 0x2000 ... 0x7FFF:  // Rom bank switching 
+            mem_setRomBankMBC1(adr, val); 
             break;
-        case 0x4000 ... 0x7FFF:  // Rom bank switching
-            
-            mem.activeRomBank &= ~(0x60);
-            mem.activeRomBank |= (val << 5) & 0x60; 
-            break;
+
+
         case 0x8000 ... 0x9FFF:  // VRAM
             mem.vRam[ adr - 0x8000] = val;
             break;
-        case 0xA000 ... 0xBFFF:  // External RAM switching!
 
+
+        case 0xA000 ... 0xBFFF:  // External RAM switching!
             break;
+
+
         case 0xC000 ... 0xCFFF:
             break;
+
+
         case 0xD000 ... 0xDFFF:
             break;
+
+
         case 0xE000 ... 0xFDFF:  // mirror ram
             break;
+
+
         case 0xFE00 ... 0xFE9F: // Sprite oam
-            mem.oam[ adr & 0xFF] = val;
+            mem.oam[ adr & 0xFF ] = val;
             break;
+
+
         case 0xFEA0 ... 0xFEFF:  // Not Usable   
             break;
+
+
         case 0xFF00 ... 0xFF7F:  // IO Registers
             mem.io[ adr & 0xFF ] = val;
             break;
+
+
         case 0xFF80 ... 0xFFFE:  // HIGH Ram
             mem.hRam[ adr & 0xFF ] = val;
             break;
+
+
         case 0xFFFF:            // IRQ Register
             mem.irq = val;
             break;
+
+
         default:
             break;
     }
@@ -211,6 +270,39 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
 }
 
 
+// 5bit 0x01 - 0x1F - highe rbits discarded
+// if val is higher then max number of banks- max bankis selected
+// if more than 16 banks reg 0x4000-7FFF supplies 2 moire upper bits
+// rombank = secBank << 5 + rombanks
+// cannot be 0 -> 1
+// if RomBank & 0xF = 0-> rombank+1
+
+void mem_setRomBankMBC1(uint16_t adr, uint8_t val){
+
+
+    if (adr <= 0x3FFF){ 
+        // discard upper bits+ if valu bigger tahn max number - discard upper bits
+        val &= (mem.cartRomBankCount -1);
+        mem.activeRomBank &= ~(0x1F);
+        mem.activeRomBank |= val; 
+    }
+
+    else if (mem.cartRomBankCount > 0x1F)
+    {
+        // set upper bits
+        mem.activeRomBank &= ~(0x60);
+        mem.activeRomBank |= (val << 5) & 0x60; 
+    }
+
+    // if selected rombank is higher than max rombank, select max
+    //if ( (mem.activeRomBank & 0x6F) > mem.cartRomBankCount){
+    //    mem.activeRomBank = mem.cartRomBankCount & 0x6F;
+    //}
+    // if lower bits are zero, increment by 1
+    if ( (mem.activeRomBank & 0x0F) == 0){
+        mem.activeRomBank += 1;
+    }
+}
 
 
 

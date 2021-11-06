@@ -27,8 +27,7 @@ cpu_t cpu;
 
 
 void cpu_init(){
-
-
+    
 }
 
 
@@ -269,7 +268,7 @@ void cpu_tick(){
         case	0xC8:	{ RET( FLAG(Z));            				    }; break;
         case	0xC9:	{ RET(1)        		                        }; break;
         case	0xCA:	{ JMP_nn( FLAG(Z));  				            }; break;
-        case	0xCB:	{ run_PrefixOp(cpu);                            }; break;
+        case	0xCB:	{ /*run_PrefixOp(cpu); */                           }; break;
         case	0xCC:	{ CALL( FLAG(Z) );				                }; break;
         case	0xCD:	{ CALL(1);				                        }; break;
         case	0xCE:	{ ADC_R(mem_read(REG(PC++)));				        }; break;
@@ -320,7 +319,7 @@ void cpu_tick(){
         case	0xFC:	{               			                    }; break; // INVALID
         case	0xFB:	{ ENABLE_IRQ;				                    }; break;
         case	0xFD:	{               			                    }; break; // INVALID
-        case	0xFE:	{ CP_R(fetch_Op(cpu));		                    }; break;
+        case	0xFE:	{ /*sCP_R(fetch_Op(cpu));		  */                  }; break;
         case	0xFF:	{ RST(0xFF)				                        }; break;
         
         default:                      break;

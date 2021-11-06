@@ -17,7 +17,7 @@
 // LD_R_R
 // D Destination, S source
 #define LD_R_n(D, S)  D = S
-#define LD_R_nn(D) { D = ( mem_read(REG(PC)++) | mem_read(REG(PC)++)  << 8) ;  }
+#define LD_R_nn(D) { D |=  mem_read(REG(PC++)); D |= mem_read(REG(PC++))  << 8 ;  }
 
 #define LD_MEM_n(D, S)  mem_write(D, S);
 
@@ -43,14 +43,14 @@
 // S = Register
 #define INC_RR(S)     { S++;  }
 #define DEC_RR(S)     { S--;  }
-#define ADD_RR(S)     { FLAG(N) = 1; FLAG(HC) = ((S % 0x0FFF) + (REG(HL) & 0x0FFF)) > 0x0FFF; REG(HL) += S; FLAG(CY) == (REG(HL) - S) < 0x0;   }
+#define ADD_RR(S)     { FLAG(N) = 1; FLAG(HC) = ((S % 0x0FFF) + (REG(HL) & 0x0FFF)) > 0x0FFF; REG(HL) += S; FLAG(CY) = (REG(HL) - S) < 0x0;   }
 
 // JMP AND CALL 
 // F = Condition to execute
-#define JMP_n(F)      {  uint8_t i = mem_read(REG(PC)++); if (F) {REG(PC) += (int8_t) i; cpu->cycle += 3;} }
-#define JMP_nn(F)     { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8); if (F) {REG(PC) = i; cpu->cycle += 1;} ;}
-#define CALL(F)       { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8);  PUSH(REG(PC)); if (F) {REG(PC) = i; cpu->cycle += 3;} ; }
-#define RET(F)        { if (F) { POP(REG(PC)); cpu->cycle += 4; }; }
+#define JMP_n(F)      {  uint8_t i = mem_read(REG(PC)++); if (F) {REG(PC) += (int8_t) i; cpu.clock  += 3;} }
+#define JMP_nn(F)     { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8); if (F) {REG(PC) = i; cpu.clock  += 1;} ;}
+#define CALL(F)       { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8);  PUSH(REG(PC)); if (F) {REG(PC) = i; cpu.clock  += 3;} ; }
+#define RET(F)        { if (F) { POP(REG(PC)); cpu.clock += 4; }; }
 
 // SHIFT OPERATIONS
 #define RLC(S)         { FLAG(N) = FLAG(HC) = 0; FLAG(CY) = !!(S & 0x80) ; S = (S << 1) + (FLAG(CY) > 0) ; FLAG(Z) = S == 0;	}
@@ -76,7 +76,7 @@
 
 #define ENABLE_IRQ    cpu.irq_enable = 1;
 #define DISABLE_IRQ   cpu.irq_enable = 0;
-*/
+
 
 
 /*
