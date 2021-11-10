@@ -67,8 +67,8 @@ void cpu_tick()
         case	0x05:	{ DEC_R(REG(B));                                }; break;
         case	0x06:	{ LD_R_n(REG(B), mem_read(REG(PC++)));   	    }; break;
         case	0x07:	{ RLC(REG(A));			                        }; break;
-        case	0x08:	{ 	/* TODO */											}; break;
-
+        case	0x08:	{ REG(SP)  = mem_read(REG(PC++)) & 0x00FF; 
+                          REG(SP) |= mem_read(REG(PC++)) << 8;	        }; break;
         case	0x09:	{ ADD_RR(REG(BC));				                }; break;
         case	0x0A:	{ LD_R_n(REG(A), mem_read(REG(BC)));				    }; break;
         case	0x0B:	{ DEC_RR(REG(BC));			                    }; break;
@@ -102,7 +102,8 @@ void cpu_tick()
         case	0x26:	{ LD_R_n(REG(H), mem_read(REG(PC++)));  				}; break;
 
         // DAA
-        case	0x27:	{ 												}; break;
+        case	0x27:	{ //change Register A from dec to BCD, check on flags to set correctly!
+                        												}; break;
 
         case	0x28:	{ JMP_n( FLAG(Z));                              }; break;
         case	0x29:	{ ADD_RR(REG(HL));					            }; break;
@@ -294,7 +295,7 @@ void cpu_tick()
         case	0xDD:	{               				                }; break; // INVALID
         case	0xDE:	{ SBC_R(mem_read(REG(PC++)));				        }; break;
         case	0xDF:	{ RST(0x18);				                    }; break;
-        case	0xE0:	{    /* TODO*/                                           }; break;
+        case	0xE0:	{ mem_write(0xFF00 + mem_read(REG(PC++)), REG(A));}; break;
         case	0xE1:	{ POP(REG(HL));					                }; break;
         case	0xE2:	{ LD_MEM_n( (REG(C) | 0xFF00) , REG(A));		}; break;
         case	0xE3:	{             				                    }; break; // INVALID
@@ -304,13 +305,15 @@ void cpu_tick()
         case	0xE7:	{ RST(0x20)				                        }; break;
         case	0xE8:	{ ADD_SP; 			                            }; break;
         case	0xE9:	{ REG(PC) = mem_read(REG(HL));				        }; break;
-        case	0xEA:	{       /* TODO*/                                         }; break;
+        case	0xEA:	{ uint16_t adr = mem_read(REG(PC++));
+                          adr |= mem_read(REG(PC++)) << 8;
+                          mem_write(adr, REG(A));                       }; break;
         case	0xEB:	{                   			                }; break; // INVALID
         case	0xEC:	{               				                }; break; // INVALID
         case	0xED:	{               				                }; break; // INVALID
         case	0xEE:	{ XOR_R(mem_read(REG(PC++)));				        }; break;
         case	0xEF:	{ RST(0x28)				                        }; break;
-        case	0xF0:	{	/* TODO*/                                            }; break;
+        case	0xF0:	{ REG(A) = mem_read( 0xFF00 + mem_read(REG(PC++)));}; break;
         case	0xF1:	{ POP(REG(AF)); REG(F) &= 0xF0;					}; break;
         case	0xF2:	{ LD_R_n( REG(A), mem_read(REG(C) | 0xFF00) );		}; break;
         case	0xF3:	{ DISABLE_IRQ;				                    }; break;
@@ -320,11 +323,13 @@ void cpu_tick()
         case	0xF7:	{ RST(0x30)				                        }; break;
         case	0xF8:	{    /*todo*/                                           }; break;
         case	0xF9:	{ LD_R_n(REG(SP), REG(HL));				        }; break;
-        case	0xFA:	{   /* todo*/                                            }; break;
+        case	0xFA:	{ uint16_t adr = mem_read(REG(PC++));
+                          adr |= mem_read(REG(PC++)) << 8;
+                          REG(A) = mem_read(adr);                      }; break;
         case	0xFB:	{ ENABLE_IRQ;				                    }; break;
         case	0xFC:	{               			                    }; break; // INVALID
         case	0xFD:	{               			                    }; break; // INVALID
-        case	0xFE:	{ /*todo*/                 }; break;
+        case	0xFE:	{ CP_R(mem_read(REG(PC++)));                    }; break;
         case	0xFF:	{ RST(0xFF)				                        }; break;
         
         default:                      break;

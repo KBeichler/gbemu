@@ -28,12 +28,14 @@ typedef struct ppu_t{
     
     ppu_state_e state;
 
-    uint8_t currx;
-    uint8_t newFrame;
     oam_sprite_t oam_sprites[40];
     uint8_t spriteSize;
-    uint8_t objEnable;
 
+
+    // info flags
+    uint8_t objEnable;
+    uint8_t currentX;
+    uint8_t newFrame;
     uint32_t clock;
 }ppu_t;
 

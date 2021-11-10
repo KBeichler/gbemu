@@ -22,7 +22,7 @@ void ppu_init(){
 
 
     memset(framebuffer, 0, SCREEN_WIDTH*SCREEN_HEIGHT);
-    ppu.currx = 0;
+    ppu.currentX = 0;
     ppu.newFrame = 0;
 
     ppu.clock = 0;
@@ -34,19 +34,11 @@ void ppu_init(){
 
 void ppu_tick(){
     uint32_t currentCycle = ppu.clock++ % 115;
-    uint8_t fake = 0;
-    if (fake) {
-        //VMEM(LY) = 128;
-    
-        //draw_Line(ppu);
-        for (uint16_t i = 0; i<64; i++){
-            printf("0x%0X ", framebuffer[128][i]);
-        }
-        printf("\n");
-    }
 
 
-    switch (ppu.state){
+
+    switch (ppu.state)
+    {
         case OAM_SEARCH:
 
             if ( currentCycle == 20)
@@ -54,7 +46,8 @@ void ppu_tick(){
 
                 // get sprite data for line
                 ppu.spriteSize = mem_read(LCDC) & ( 1<<2 ) ? 16 : 8;
-                for (uint8_t i = 0; i < 40; i++){
+                for (uint8_t i = 0; i < 40; i++)
+                {
                     
                     ppu.oam_sprites[i].y      = mem_read(0xFE00 + i*4   );
                     ppu.oam_sprites[i].x      = mem_read(0xFE00 + i*4 +1);
@@ -70,7 +63,7 @@ void ppu_tick(){
                 ppu.state = PIXEL_TRANSFER;
                 
 
-                mem_write(LCDC,  (mem_read(LCDC) & 0xFC | ppu.state ) );//TODO CHECK
+                mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) );//TODO CHECK
             }
             break;
 
@@ -88,7 +81,7 @@ void ppu_tick(){
                 
 
                 //VMEM(LCDC) = (VMEM(LCDC)) & 0xFC | ppu.state;
-                mem_write(LCDC,  (mem_read(LCDC) & 0xFC | ppu.state ) ); //TODO CHECK
+                mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
                 //if (VMEM(STAT) & ( 1 << 3)) TRIGGER_IRQ(IRQ_LCDC);
                 if (mem_read(STAT) & ( 1 << 3)) TRIGGER_IRQ(IRQ_LCDC);
 
@@ -107,7 +100,7 @@ void ppu_tick(){
                 ppu.state = OAM_SEARCH;
                 
                 //VMEM(LCDC) = (VMEM(LCDC)) & 0xFC | ppu.state;
-                mem_write(LCDC,  (mem_read(LCDC) & 0xFC | ppu.state ) );
+                mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) );
                 if (mem_read(STAT) & ( 1 << 5)) TRIGGER_IRQ(IRQ_LCDC);
 
             }
@@ -118,7 +111,7 @@ void ppu_tick(){
                 ppu.state = VBLANK;
 
                 //VMEM(LCDC) = (VMEM(LCDC)) & 0xFC | ppu.state; 
-                mem_write(LCDC,  (mem_read(LCDC) & 0xFC | ppu.state ) ); //TODO CHECK
+                mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
                 if (mem_read(STAT) & ( 1 << 4))TRIGGER_IRQ(IRQ_LCDC);
                 TRIGGER_IRQ(IRQ_VBLANK);
             }
@@ -128,17 +121,19 @@ void ppu_tick(){
 
         case VBLANK:
 
-            if (currentCycle == 114) {                
+            if (currentCycle == 114) 
+            {                
                 INC_LY;
             }
 
-            if (mem_read(LY) >= 154){
+            if (mem_read(LY) >= 154)
+            {
                 
                 mem_write(LY , 0); ;
                 ppu.state = OAM_SEARCH;
                 ppu.newFrame = 1;
                 //VMEM(LCDC) = VMEM(LCDC) & 0xFC | ppu.state;
-                mem_write(LCDC,  (mem_read(LCDC) & 0xFC | ppu.state ) ); //TODO CHECK
+                mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
                 if (mem_read(STAT) & ( 1 << 5)) TRIGGER_IRQ(IRQ_LCDC);
 
             }
@@ -150,14 +145,18 @@ void ppu_tick(){
 
 
     // Check if LY == LYC and set bit - if enabled, trigger interrupt    
-    if ( (mem_read(LY) == mem_read(LYC)) ){
+    if ( (mem_read(LY) == mem_read(LYC)) )
+    {
         
         mem_write(STAT, mem_read(STAT) | ( 1 << 2)); //VMEM(STAT) |= ( 1 << 2);
-        if ( mem_read(STAT) & ( 1 << 6 ) ){            
+        
+        if ( mem_read(STAT) & ( 1 << 6 ) )
+        {            
             TRIGGER_IRQ(IRQ_LCDC);
         } 
     }  
-    else{
+    else
+    {
         mem_write(STAT, mem_read(STAT) & ~( 1 << 2 ) ); //VMEM(STAT) &= ~( 1 << 2 );
         
     }
