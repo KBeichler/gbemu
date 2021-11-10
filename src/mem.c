@@ -31,6 +31,9 @@ static uint8_t BOOT_ROM[0x100] =
 mem_t mem;
 
 
+void (*_setRomBank) (uint16_t, uint8_t);
+
+
 
 
 void mem_init()
@@ -100,6 +103,10 @@ uint8_t mem_loadRom(char* path)
     mem.cartType = mem.loadedRom[0x147];
     mem.cartRomBankCount = 1 << ( mem.loadedRom[0x148] + 1);
     mem.activeRomBank = 1;
+
+
+    // TODO add MBC table to set function poitner to memory bank functions
+    _setRomBank = &mem_setRomBankMBC1;
     // Allocate external Ram if any
     // TODO load eram file .sav
     if (mem.loadedRom[0x149] < 0x06 && mem.loadedRom[0x149] > 1)
@@ -107,7 +114,7 @@ uint8_t mem_loadRom(char* path)
         mem.cartRamBankCount = 1 << (mem.loadedRom[0x149] -1);
         mem.eRam = malloc(mem.cartRamBankCount * 0x2000);   
         mem.activeRamBank = 0;   
-          
+        
     }
     else
     {
@@ -162,11 +169,12 @@ uint8_t mem_read(uint16_t adr)
 
 
         case 0xC000 ... 0xCFFF:  // wram
-            return mem.vRam[ adr & 0x0FFF];
+            return mem.fixedRam[ adr - 0xC000];
             break;
 
 
         case 0xD000 ... 0xDFFF:  // schwitchable wRam
+            return mem.switchedRam[0][ adr - 0xD000];
             break;
 
 
@@ -213,7 +221,7 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
 
 
         case 0x2000 ... 0x7FFF:  // Rom bank switching 
-            mem_setRomBankMBC1(adr, val); 
+            _setRomBank(adr, val); 
             break;
 
 
@@ -222,15 +230,17 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
             break;
 
 
-        case 0xA000 ... 0xBFFF:  // External RAM switching!
+        case 0xA000 ... 0xBFFF:  // External RAM switching TODO!
             break;
 
 
         case 0xC000 ... 0xCFFF:
+            mem.fixedRam[ adr - 0xC000] = val;
             break;
 
 
-        case 0xD000 ... 0xDFFF:
+        case 0xD000 ... 0xDFFF: // TODO RAM SWITCHING
+            mem.switchedRam[0][ adr - 0xD000] = val;
             break;
 
 
@@ -303,6 +313,8 @@ void mem_setRomBankMBC1(uint16_t adr, uint8_t val){
         mem.activeRomBank += 1;
     }
 }
+
+
 
 
 

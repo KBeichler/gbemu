@@ -1,6 +1,7 @@
 #include <gb.h>
 
 
+
 int main (int argc, char* argv[]) 
 {
     
@@ -18,6 +19,7 @@ int main (int argc, char* argv[])
 
     cpu_init();
     mem_init();
+    ppu_init();
     mem_close();
  
     return 0;

@@ -36,6 +36,11 @@
 #define INC_R(S)      { FLAG(N) = 0; FLAG(HC) = (S & 0xF) == 0xF; S++; FLAG(Z) = S == 0; }
 #define DEC_R(S)      { FLAG(N) = 1; FLAG(HC) = (S ==  0);        S--; FLAG(Z) = S == 0; }
 
+#define INC_HL      { uint8_t n = mem_read(REG(HL)); FLAG(N) = 0; FLAG(HC) = (n & 0xF) == 0xF; n++; FLAG(Z) = n == 0; mem_write(REG(HL), n);}
+#define DEC_HL      { uint8_t n = mem_read(REG(HL)); FLAG(N) = 1; FLAG(HC) = (n ==  0);        n--; FLAG(Z) = n == 0; mem_write(REG(HL), n);}
+
+
+
 #define CP_R(S)       { uint8_t i = S; FLAG(N) = 1; FLAG(Z) = ( REG(A) == i ); FLAG(CY) = REG(A) < i; FLAG(HC) = ((REG(A) & 0xF) < (i & 0xF)); }
 
 #define ADD_SP        { FLAG(Z) = FLAG(N) = 0; uint8_t i = mem_read(REG(PC)++); REG(SP += (int8_t) i;)}
@@ -49,21 +54,21 @@
 // F = Condition to execute
 #define JMP_n(F)      {  uint8_t i = mem_read(REG(PC)++); if (F) {REG(PC) += (int8_t) i; cpu.clock  += 3;} }
 #define JMP_nn(F)     { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8); if (F) {REG(PC) = i; cpu.clock  += 1;} ;}
-#define CALL(F)       { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8);  PUSH(REG(PC)); if (F) {REG(PC) = i; cpu.clock  += 3;} ; }
+#define CALL(F)       { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8); if (F) {REG(PC) = i; PUSH(REG(PC)); cpu.clock  += 3;} ; }
 #define RET(F)        { if (F) { POP(REG(PC)); cpu.clock += 4; }; }
 
 // SHIFT OPERATIONS
-#define RLC(S)         { FLAG(N) = FLAG(HC) = 0; FLAG(CY) = !!(S & 0x80) ; S = (S << 1) + (FLAG(CY) > 0) ; FLAG(Z) = S == 0;	}
-#define RL(S)          { FLAG(N) = FLAG(HC) = 0; short f  = S >> 7       ; S = (S << 1) | FLAG(CY)       ; FLAG(Z) = S == 0;	FLAG(CY) = !!f;  }
-#define RRC(S)         { FLAG(N) = FLAG(HC) = 0; FLAG(CY) = S & 0x01     ; S = (S >> 1) | (FLAG(CY) << 7); FLAG(Z) = S == 0;	}
-#define RR(S)          { FLAG(N) = FLAG(HC) = 0; short f  = S & 0x01     ; S = (S >> 1) | (FLAG(CY) << 7); FLAG(Z) = S == 0;  FLAG(CY) = !!f;	 }
-#define SLA(S)         { FLAG(N) = FLAG(HC) = 0; FLAG(CY) = !!(S  & 0x80); S = S << 1                    ; FLAG(Z) = S == 0;	}
-#define SRA(S)         { FLAG(N) = FLAG(HC) = 0; FLAG(CY) = S & 0x01     ; S = (S & 0x80) | (S >> 1)     ; FLAG(Z) = S == 0;	}
-#define SRL(S)         { FLAG(N) = FLAG(HC) = 0; FLAG(CY) = S & 0x01     ; S = (S >> 1)                  ; FLAG(Z) = S == 0;	}
-#define SWAP(S)        { FLAG(N) = FLAG(CY) =    FLAG(HC) = 0            ; S = S >> 4 | S << 4           ; FLAG(Z) = S == 0;  }
-#define RES(B , S)     { S &= ~( 1 << B );  }
-#define SET(B , S)     { S |=  ( 1 << B );  }
-#define BIT(B , S)     { FLAG(N) = 0; FLAG(HC) = 1; FLAG(Z) = !( ( S & (1 << B)) );  }
+#define RLC(S)          FLAG(N) = FLAG(HC) = 0; FLAG(CY) = !!(S & 0x80) ; S = (S << 1) + (FLAG(CY) > 0) ; FLAG(Z) = S == 0;	
+#define RL(S)           FLAG(N) = FLAG(HC) = 0; short f  = S >> 7       ; S = (S << 1) | FLAG(CY)       ; FLAG(Z) = S == 0;	FLAG(CY) = !!f;  
+#define RRC(S)          FLAG(N) = FLAG(HC) = 0; FLAG(CY) = S & 0x01     ; S = (S >> 1) | (FLAG(CY) << 7); FLAG(Z) = S == 0;	
+#define RR(S)           FLAG(N) = FLAG(HC) = 0; short f  = S & 0x01     ; S = (S >> 1) | (FLAG(CY) << 7); FLAG(Z) = S == 0;  FLAG(CY) = !!f;	 
+#define SLA(S)          FLAG(N) = FLAG(HC) = 0; FLAG(CY) = !!(S  & 0x80); S = S << 1                    ; FLAG(Z) = S == 0;	
+#define SRA(S)          FLAG(N) = FLAG(HC) = 0; FLAG(CY) = S & 0x01     ; S = (S & 0x80) | (S >> 1)     ; FLAG(Z) = S == 0;	
+#define SRL(S)          FLAG(N) = FLAG(HC) = 0; FLAG(CY) = S & 0x01     ; S = (S >> 1)                  ; FLAG(Z) = S == 0;	
+#define SWAP(S)         FLAG(N) = FLAG(CY) =    FLAG(HC) = 0            ; S = S >> 4 | S << 4           ; FLAG(Z) = S == 0;  
+#define RES(B , S)      S &= ~( 1 << B );  
+#define SET(B , S)      S |=  ( 1 << B );  
+#define BIT(B , S)      FLAG(N) = 0; FLAG(HC) = 1; FLAG(Z) = !( ( S & (1 << B)) );  
 
 
 //#define PUSH(S)       { MEM(--REG(SP)) = (S >> 8); MEM(--REG(SP))= S & 0xFF ; } 
@@ -154,24 +159,13 @@ typedef struct cpu_t
 }cpu_t;
 
 
-// Register Numbers for opcode decoding
-typedef enum regNum_e
-{
-    B = 0,
-    C,
-    D,
-    E,
-    H,
-    L,
-    HL,
-    A
-}regNum_e;
+
 
 
 
 
 void cpu_init(void);
-
+void cpu_tick(void);
 
 
 

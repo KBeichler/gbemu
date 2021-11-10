@@ -50,6 +50,9 @@ uint8_t mem_write(uint16_t adr, uint8_t val);
 uint8_t mem_loadRom(char* path);
 void mem_close();
 
+
+
+
 void mem_setRomBankMBC1(uint16_t adr, uint8_t val);
 
 
