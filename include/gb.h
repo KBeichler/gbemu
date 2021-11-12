@@ -1,11 +1,12 @@
 #ifndef GB
 #define GB
-
+#define DEBUG
 #include <stdio.h>
 #include <stdint.h>
 #include <cpu.h>
 #include <mem.h>
 #include <ppu.h>
+
 
 
 

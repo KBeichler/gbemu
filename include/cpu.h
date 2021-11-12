@@ -17,7 +17,7 @@
 // LD_R_R
 // D Destination, S source
 #define LD_R_n(D, S)  D = S
-#define LD_R_nn(D) { D |=  mem_read(REG(PC++)); D |= mem_read(REG(PC++))  << 8 ;  }
+#define LD_R_nn(D) { D =  mem_read(REG(PC++)); D |= mem_read(REG(PC++))  << 8 ;  }
 
 #define LD_MEM_n(D, S)  mem_write(D, S);
 
@@ -52,9 +52,9 @@
 
 // JMP AND CALL 
 // F = Condition to execute
-#define JMP_n(F)      {  uint8_t i = mem_read(REG(PC)++); if (F) {REG(PC) += (int8_t) i; cpu.clock  += 3;} }
-#define JMP_nn(F)     { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8); if (F) {REG(PC) = i; cpu.clock  += 1;} ;}
-#define CALL(F)       { uint16_t i = mem_read(REG(PC)++); i |= (mem_read(REG(PC)++) << 8); if (F) {REG(PC) = i; PUSH(REG(PC)); cpu.clock  += 3;} ; }
+#define JMP_n(F)      {  uint8_t i = mem_read(REG(PC++)); if (F) {REG(PC) += (int8_t) i; cpu.clock  += 3;} }
+#define JMP_nn(F)     { uint16_t i = mem_read(REG(PC++)); i |= (mem_read(REG(PC++)) << 8); if (F) {REG(PC) = i; cpu.clock  += 1;} ;}
+#define CALL(F)       { uint16_t i = mem_read(REG(PC++)); i |= (mem_read(REG(PC++)) << 8); if (F) {PUSH(REG(PC)); REG(PC) = i; cpu.clock  += 3;} ; }
 #define RET(F)        { if (F) { POP(REG(PC)); cpu.clock += 4; }; }
 
 // SHIFT OPERATIONS

@@ -172,7 +172,7 @@ void ppu_tick(){
 //
 
 void ppu_drawLine(){
-
+/*
     //draw Background
     
     // Tile select
@@ -218,6 +218,7 @@ void ppu_drawLine(){
         }
 
     }
+*/
 
 /*
     //draw sprite

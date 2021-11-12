@@ -1,7 +1,7 @@
 #include <gb.h>
 #include <mem.h>
 
-#define DEBUG
+
 static uint8_t BOOT_ROM[0x100] = 
 {
 	0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
@@ -92,6 +92,7 @@ uint8_t mem_loadRom(char* path)
         return 1;
     }
 
+    // Get length of given File and allocate space
     fseek(romFile, 0, SEEK_END);
     mem.loadedRomLength = ftell(romFile);
     rewind(romFile);  
@@ -100,6 +101,7 @@ uint8_t mem_loadRom(char* path)
     fread(mem.loadedRom, mem.loadedRomLength, 1, romFile);
     fclose(romFile);
 
+    // get cartridge header information
     mem.cartType = mem.loadedRom[0x147];
     mem.cartRomBankCount = 1 << ( mem.loadedRom[0x148] + 1);
     mem.activeRomBank = 1;
