@@ -31,10 +31,39 @@ typedef struct mem_t
     uint8_t switchedRam[0x8][0x1000];
 
 	uint8_t oam[0xA0];
-    uint8_t io[0x80];
+    union
+    {
+        uint8_t io[0x80];
+        struct 
+        {
+            uint8_t P1;
+            uint8_t SB;
+            uint8_t SC;
+            uint8_t DIV;
+            uint8_t TIMA;
+            uint8_t TMA;
+            uint8_t TAC;
+            uint8_t _offset [0x08];
+            uint8_t IF;
+            uint8_t _offset2 [ 0x30];
+            uint8_t LCDC;
+            uint8_t STAT;
+            uint8_t SCY;
+            uint8_t SCX;
+            uint8_t LY;
+            uint8_t LYC;
+            uint8_t DMA;
+            uint8_t BGP;
+            uint8_t OBP0;
+            uint8_t OBP1;
+            uint8_t WY;
+            uint8_t WX;
+        };
+        
+    };
 
     uint8_t hRam[0x80];
-    uint8_t irq;
+    uint8_t IE;
 
 
 }mem_t;

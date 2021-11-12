@@ -4,12 +4,12 @@
 #define SCREEN_WIDTH  160
 #define SCREEN_HEIGHT 144
 
-#define INC_LY mem_write(LY, mem_read(LY)+1);
+#define INC_LY mem.LY++;
 
 
 ppu_t ppu;
 uint8_t framebuffer[SCREEN_WIDTH][SCREEN_HEIGHT] ;
-
+extern mem_t mem;
 
 
 
@@ -27,7 +27,7 @@ void ppu_init(){
 
     ppu.clock = 0;
     ppu.state = OAM_SEARCH;
-    mem_write(LY, 0);
+    mem.LY = 0;
 
 }
 
@@ -45,7 +45,7 @@ void ppu_tick(){
             {
 
                 // get sprite data for line
-                ppu.spriteSize = mem_read(LCDC) & ( 1<<2 ) ? 16 : 8;
+                ppu.spriteSize = mem.LCDC & ( 1<<2 ) ? 16 : 8;
                 for (uint8_t i = 0; i < 40; i++)
                 {
                     
@@ -59,11 +59,11 @@ void ppu_tick(){
                     ppu.oam_sprites[i].palette = atr & (1<<4);
                 }
 
-                ppu.objEnable = !!(mem_read(LCDC) & (1<<1));
+                ppu.objEnable = !!(mem.LCDC & (1<<1));
                 ppu.state = PIXEL_TRANSFER;
                 
-
-                mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) );//TODO CHECK
+                mem.STAT &= (0xFC | ppu.state);
+                //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) );//TODO CHECK
             }
             break;
 
@@ -74,16 +74,17 @@ void ppu_tick(){
 
             if (currentCycle == 64)
             {
-                //draw_Line(ppu);
+                //ppu_drawLine();;
                 ppu.state = HBLANK;
                 INC_LY;
                 
                 
 
-                //VMEM(LCDC) = (VMEM(LCDC)) & 0xFC | ppu.state;
-                mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
+                
+                mem.STAT &= (0xFC | ppu.state);
+                //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
                 //if (VMEM(STAT) & ( 1 << 3)) TRIGGER_IRQ(IRQ_LCDC);
-                if (mem_read(STAT) & ( 1 << 3)) TRIGGER_IRQ(IRQ_LCDC);
+                if (mem.STAT & ( 1 << 3)) TRIGGER_IRQ(IRQ_LCDC);
 
 
             }
@@ -93,26 +94,28 @@ void ppu_tick(){
 
         case HBLANK:    
             
-            if ( currentCycle == 114 && mem_read(LY) < 144 ) 
+            if ( currentCycle == 114 && mem.LY < 144 ) 
             { 
                 
 
                 ppu.state = OAM_SEARCH;
                 
                 //VMEM(LCDC) = (VMEM(LCDC)) & 0xFC | ppu.state;
-                mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) );
-                if (mem_read(STAT) & ( 1 << 5)) TRIGGER_IRQ(IRQ_LCDC);
+                mem.STAT &= (0xFC | ppu.state);
+                //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) );
+                if (mem.STAT & ( 1 << 5)) TRIGGER_IRQ(IRQ_LCDC);
 
             }
-            else if ( currentCycle == 114 && mem_read(LY) >= 144 )
+            else if ( currentCycle == 114 && mem.LY  >= 144 )
             {
                 INC_LY;
 
                 ppu.state = VBLANK;
 
                 //VMEM(LCDC) = (VMEM(LCDC)) & 0xFC | ppu.state; 
-                mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
-                if (mem_read(STAT) & ( 1 << 4))TRIGGER_IRQ(IRQ_LCDC);
+                mem.STAT &= (0xFC | ppu.state);
+                //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
+                if (mem.STAT & ( 1 << 4)) TRIGGER_IRQ(IRQ_LCDC);
                 TRIGGER_IRQ(IRQ_VBLANK);
             }
             break;
@@ -126,15 +129,16 @@ void ppu_tick(){
                 INC_LY;
             }
 
-            if (mem_read(LY) >= 154)
+            if (mem.LY  >= 154)
             {
                 
-                mem_write(LY , 0); ;
+                mem.LY = 0 ;
                 ppu.state = OAM_SEARCH;
                 ppu.newFrame = 1;
                 //VMEM(LCDC) = VMEM(LCDC) & 0xFC | ppu.state;
-                mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
-                if (mem_read(STAT) & ( 1 << 5)) TRIGGER_IRQ(IRQ_LCDC);
+                mem.STAT &= (0xFC | ppu.state);
+                //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
+                if (mem.STAT & ( 1 << 5)) TRIGGER_IRQ(IRQ_LCDC);
 
             }
                 
@@ -145,19 +149,19 @@ void ppu_tick(){
 
 
     // Check if LY == LYC and set bit - if enabled, trigger interrupt    
-    if ( (mem_read(LY) == mem_read(LYC)) )
+    if ( (mem.LY  == mem.LYC) )
     {
         
-        mem_write(STAT, mem_read(STAT) | ( 1 << 2)); //VMEM(STAT) |= ( 1 << 2);
+        mem.STAT |= ( 1 << 2); //VMEM(STAT) |= ( 1 << 2);
         
-        if ( mem_read(STAT) & ( 1 << 6 ) )
+        if ( mem.STAT & ( 1 << 6 ) )
         {            
             TRIGGER_IRQ(IRQ_LCDC);
         } 
     }  
     else
     {
-        mem_write(STAT, mem_read(STAT) & ~( 1 << 2 ) ); //VMEM(STAT) &= ~( 1 << 2 );
+        mem.STAT &= ~( 1 << 2 ) ; //VMEM(STAT) &= ~( 1 << 2 );
         
     }
 
@@ -166,8 +170,8 @@ void ppu_tick(){
 
 
 //
-/*
-void draw_Line(ppu_t *ppu){
+
+void ppu_drawLine(){
 
     //draw Background
     
@@ -175,7 +179,7 @@ void draw_Line(ppu_t *ppu){
     // start at 8000, signed
     uint16_t tileAdr;
     uint16_t bg;
-    if ( VMEM(LCDC) & ( 1 << 4 ) ){
+    if ( mem.LCDC & ( 1 << 4 ) ){
         tileAdr = 0x8000;
        // int16_t currTile;
     }
@@ -186,36 +190,36 @@ void draw_Line(ppu_t *ppu){
     }
 
     // BG MAp select start at  9800
-    if (VMEM(LCDC) & ( 1 << 3)){
+    if (mem.LCDC & ( 1 << 3)){
         bg = 0x9C00;
     }
     // start at 9c00
     else{
         bg = 0x9800;
     }
-    uint8_t d1 = VMEM(SCX);
+    uint8_t d1 = mem.SCX;
     uint16_t currTile;
-    uint16_t x = VMEM(SCX)/8;
-    uint16_t y = (( (VMEM(SCY) + VMEM(LY)) / 8 )%32) << 2;
+    uint16_t x = mem.SCX/8;
+    uint16_t y = (( (mem.SCY + mem.LY) / 8 )%32) << 2;
     uint8_t t1, t2;
     for (uint8_t j = 0; j < 20; j++){
         // read tile num from bg map
-        currTile = VMEM( (bg + (y) + ((x + j) % 32)) );
+        currTile = mem_read( (bg + (y) + ((x + j) % 32)) );
         // multiply to get correct address (every tile has 16 byte)
         currTile = tileAdr | currTile << 4;
 
         // read tile bytes (2 tiles per line) for current LY line
-        t1 = VMEM( currTile + ((VMEM(LY) % 8)*2)    );
-        t2 = VMEM( currTile + ((VMEM(LY) % 8)*2) +1 );
+        t1 = mem_read( currTile + ((mem.LY % 8)*2)    );
+        t2 = mem_read( currTile + ((mem.LY % 8)*2) +1 );
         //set framebuffer accordingly
         for (uint8_t i = 0; i < 8; i++){
             // TODO get color from palette 
-            ppu.framebuffer[VMEM(LY)][(j*8)+i] = (!!(t1 & (0x80 >> i))) + (!!(t2 & (0x80 >> i)))*2; 
+            ppu.framebuffer[mem.LY][(j*8)+i] = (!!(t1 & (0x80 >> i))) + (!!(t2 & (0x80 >> i)))*2; 
         }
 
     }
 
-
+/*
     //draw sprite
     
     uint8_t drawnSprites = 0;
@@ -270,8 +274,8 @@ void draw_Line(ppu_t *ppu){
 
         }
     }
-
+*/
 
 }
 
-*/
+

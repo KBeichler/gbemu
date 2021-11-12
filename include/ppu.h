@@ -30,6 +30,7 @@ typedef struct ppu_t{
 
     oam_sprite_t oam_sprites[40];
     uint8_t spriteSize;
+    uint8_t framebuffer[160][160];
 
 
     // info flags
@@ -44,6 +45,8 @@ typedef struct ppu_t{
 void ppu_init();
 
 void ppu_tick();
+
+void ppu_drawLine();
 
 
 

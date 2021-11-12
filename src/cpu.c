@@ -18,11 +18,11 @@ uint8_t OpCodeTimingTable[0x100] = {
 3, 3, 2, 0, 0, 4, 2, 4, 4, 1, 4, 0, 0, 0, 2, 4,
 3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4,
 };
-
+uint8_t IRQ_TABLE[5] = { 0x40, 0x48, 0x50, 0x58, 0x60};
 cpu_t cpu;
 
 
-
+extern mem_t mem;
 
 
 
@@ -48,6 +48,25 @@ void cpu_init(){
 void cpu_tick()
 {
 
+
+    // check interrupts
+    if (cpu.irq_enable == 1)
+    {
+        for (uint8_t i = 0; i < 5 && cpu.irq_enable; i++)
+        {
+            if ( ( mem.IE & (1 << i)) && ( mem.IF & (1 << i)) )
+            {
+
+                PUSH(REG(PC));
+                REG(PC) = IRQ_TABLE[i];
+                //clear flag
+                mem.IF &= ~( 1 << i );
+                DISABLE_IRQ;
+            }
+        }
+
+
+    }
 
 
 

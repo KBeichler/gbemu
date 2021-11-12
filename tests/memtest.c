@@ -45,6 +45,9 @@ int main (int argc, char* argv[])
     }
     
     mem_init();
+    mem.io[0xFF40 - 0xFF00] = 0xF1;
+    mem.io[0xFF0F - 0xFF00] = 0xFF;
+    printf("LCDC %x  IF %x\n", mem.LCDC, mem.IF);
     if ( mem_loadRom(romfile) )
     {
         printf("Testfile '%s' not found\n", romfile);
@@ -68,6 +71,7 @@ int main (int argc, char* argv[])
         printf(" 0x%x = 0x%x\t %x = 0x%x\t 0x%x = 0x%x\t 0x%x = 0x%x\t\n", a,  mem_read(a), a*3,  mem_read(a*3),a*4,  mem_read(a*4), a*6,  mem_read(a*6));
        
     }
+
 
 
 

@@ -200,7 +200,7 @@ uint8_t mem_read(uint16_t adr)
 
 
         case 0xFFFF:             //irq
-            return mem.irq;
+            return mem.IE;
             break;
 
 
@@ -268,7 +268,7 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
 
 
         case 0xFFFF:            // IRQ Register
-            mem.irq = val;
+            mem.IE = val;
             break;
 
 
