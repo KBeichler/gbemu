@@ -1,0 +1,116 @@
+DMG1 - classic gameboy
+1MHZ CPU 8 BIT
+8kb RAM
+8kb VRAM
+160x144
+
+SoC DMG CPU  Sharp LR35902 
+	mischung aus Intel 8080 und Z80 (Superset)
+CPU
+IRQ Controller
+Timer
+Memory 
+Boot ROM
+Joypad Input 
+Serial Data Transfler
+Sound controller
+Pixel Processing Unit
+	Gameboy hat ein paar special features
+
+Core architecture
+Registers
+A - Akumulator for arithmetic
+F - Flags (ZNHC -> 4 MSBs)
+BCDEL 8 bitt register (BC DE HL jeweils 16bit)
+((hl)) register -> is a pointer, can be every register
+16 bit stack pointer
+
+Interrupts
+IRQ jumps to fixed places in ram
+
+Z80 featrues are mostly shift functions
+post increment and predecrement on hl possible
+
+Zero Page -> faster laoding from upper ram page
+
+Timing
+CPU 4 RAM 1 PPU 4 VRAM 2 MHZ
+
+
+Memory Space
+	Cartidge Rom 0x0000 - 0x8000
+	Boot Rom 0x0000 0x00100?
+	Video RAM 0x8000 - 0xA000
+	External RAm (cartridge) 0xA000 -C000
+	RAM	C0000 - E0000 
+	OAM RAM FE00 FEA0 (fast RAM)
+	IO FF00 - FF80
+	HRAM	0xFF80 0xFFFF
+
+Games haben bis zu 2MB
+	cartirdges can switch bank
+	
+BOOT ROM
+	nintendo logo
+	Init RAM sound
+	setup logo, decode logo
+	scroll logo
+	compare logo from rom to cartridge
+	checksum header
+	turn ff boot rom
+
+after boot catridge jump to begin of boot rom
+
+
+IO and RAM
+Joypad
+	4 buttons and 4 directions
+Serial Data Transfer
+	Serial data 8 kHz clock bytes, both directions same time
+Timer
+	TMA register - 4 speeds. counts up until overflow 
+Interrupt
+	5 interrupts - PPU . Timer. Serial joypad
+Sound Controller
+	4 Voices - 5 Registers each - Control Frequency Vol - length Sweep
+	for PULSE a PULSE B Wave and NOISE
+
+PPU
+12 REgisters
+160*140	4 shades of gray 8x8 tile based 20*18 tiles
+tile is 8 by 8 pixel - color is 2 bits - 2 Bytes per tile
+Color mapping can be set manually
+256 Tiles -> tileset
+VideoRAm is 32x32 tiles! by that we control scrolling
+view scrolls around and wrapps around edges (all directions)
+Background tiles and foreground tiles
+	foreground no scrolling , used for score
+Sprites - objects on the screen (figuren etc)
+	has attributes
+	x y 
+	256 sprite tiles
+only 10 sprites per line on display
+OAM RAM -> stores info about all sprites
+
+VRAM Memory map
+4 KB sprite tiles
+4kb Backgroudn tiles
+1kb window map
+1kb background map
+
+PPU Timing
+Gameboy draws picture left to right line per line 60ht per sond
+Update from one line takes 43 clocks
+20 cycle before line gets drwan OAM Search
+h blank after evely line 51 blocks - idle
+OAM Search - look for sprites that are visible on line and put it into memory
+
+Pixel Pipeline
+pixel FIFO
+16 bits, shifts out pixel and draws to display
+	when only 8 bit left - fetch new byte
+		fetch tile - read tyle number
+				read tile line
+				constructs pixels
+
+	scrolling is just shift bits out infrom of line

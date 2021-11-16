@@ -5,14 +5,14 @@ extern cpu_t cpu;
 extern mem_t mem;
 extern ppu_t ppu;
 
-char * testfile = "./cpu_instrs.gb";
+char * testfile = "./cpu_instrs1.gb";
 
 void cputest_debugPrint(){
 
 
     printf("------------------------------------------------------------\n");
     printf("CPU-Clock: %13d\tPPU-clock: %13d\nOpCode: 0x%02X\t+1: 0x%02X\t+2: 0x%02X\n",cpu.clock, ppu.clock, mem_read(cpu.PC), mem_read(cpu.PC+1), mem_read(cpu.PC+2));
-    printf("Registers:\nBC: 0x%02X\tDE: 0x%02X\t HL: 0x%02X\t AF: 0x%02X\nPC: 0x%02X\tSP: 0x%02X", cpu.BC, cpu.DE, cpu.HL, cpu.AF, cpu.PC, cpu.SP);
+    printf("Registers:\nAF: 0x%02X\tBC: 0x%02X\tDE: 0x%02X\t HL: 0x%02X\nPC: 0x%02X\tSP: 0x%02X", cpu.AF, cpu.BC, cpu.DE, cpu.HL,  cpu.PC, cpu.SP);
     printf("\t FLAGS:   Z:%d N:%d HC:%d C:%d\n", !!(cpu.F & 1<<7), !!(cpu.F & 1<<6), !!(cpu.F & 1<<5), !!(cpu.F & 1<<4) );
     printf("Memory:\n@SP: 0x%02X\t+1: 0x%02X\t -1 0x%02X\t-2 0x%02X", mem_read(cpu.SP),mem_read(cpu.SP+1),mem_read(cpu.SP-1), mem_read(cpu.SP-2));
     printf("\n@HL: 0x%02X\t +1 0x%02X\n", mem_read(cpu.HL), mem_read(cpu.HL+1));
@@ -70,7 +70,7 @@ void cputest_fakepowerup()
 }
 
 
-
+// status: we run ok at leas until Px 0x763 
 
 int main(void){
     cpu_init();
@@ -78,12 +78,13 @@ int main(void){
     mem_init();
     mem_loadRom(testfile);
     cputest_fakepowerup();
+    cputest_debugPrint();
 
 
     printf("CPU Test with blargs opcode test\n");
     printf("video is currently not supported\n");
     printf("Start test with rom file %s and init Values:\n", testfile);
-    cputest_debugPrint();
+    
 
     uint8_t run = 0;
     uint8_t singlestep = 0;
@@ -108,10 +109,6 @@ int main(void){
         }   
     }
 
-     
-    
-    
-    
     
     while (run)
     {

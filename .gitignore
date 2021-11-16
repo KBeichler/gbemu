@@ -1,0 +1,8 @@
+.vscode 
+/info
+/roms
+/oldcode
+/builds
+gbemu.code-workspace
+infos.txt
+/tests/testfiles

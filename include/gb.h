@@ -61,7 +61,7 @@
 
 
 
-
+void gb_fakePowerup();
 
 
 

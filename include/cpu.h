@@ -135,14 +135,17 @@ typedef struct cpu_t
         uint16_t AF;
         struct
         {
-            uint8_t F;
-            struct
+            union
             {
-                uint8_t _n :4;
-                uint8_t CY :1;
-                uint8_t HC :1;
-                uint8_t N :1;
-                uint8_t Z :1;
+                uint8_t F;
+                struct
+                {
+                    uint8_t _n :4;
+                    uint8_t CY :1;
+                    uint8_t HC :1;
+                    uint8_t N :1;
+                    uint8_t Z :1;
+                };
             };
             uint8_t A;
         };
