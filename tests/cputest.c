@@ -5,7 +5,10 @@ extern cpu_t cpu;
 extern mem_t mem;
 extern ppu_t ppu;
 
-char * testfile = "./cpu_instrs1.gb";
+char * testfile = "/mnt/d/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
+uint8_t run = 0;
+uint8_t singlestep = 0;
+uint32_t breakpoint;
 
 void cputest_debugPrint(){
 
@@ -67,10 +70,10 @@ void cputest_fakepowerup()
     mem_write(0xFF4A, 0x00)   ; 
     mem_write(0xFF4B, 0x00)   ; 
     mem_write(0xFFFF, 0x00)   ; 
+    mem.IF = 0xE1;
+
 }
-
-
-// status: we run ok at leas until Px 0x763 
+// status: we run ok at leas until Px 0x2d2 
 
 int main(void){
     cpu_init();
@@ -86,9 +89,7 @@ int main(void){
     printf("Start test with rom file %s and init Values:\n", testfile);
     
 
-    uint8_t run = 0;
-    uint8_t singlestep = 0;
-    uint32_t breakpoint;
+
     printf("Singlestep on? Y/y\n");
     char in = getchar();
     if (in == 'Y' || in == 'y')
