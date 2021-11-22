@@ -65,6 +65,8 @@ typedef struct mem_t
     uint8_t hRam[0x80];
     uint8_t IE;
 
+    uint8_t DMA_active;
+
 
 }mem_t;
 
@@ -79,6 +81,8 @@ uint8_t mem_write(uint16_t adr, uint8_t val);
 uint8_t mem_loadRom(char* path);
 void mem_close();
 
+
+void mem_doDMA();
 
 
 

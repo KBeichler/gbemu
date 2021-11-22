@@ -39,7 +39,7 @@ void (*_setRomBank) (uint16_t, uint8_t);
 void mem_init()
 {
     memset((void *) &mem, 0, sizeof(mem_t));
-
+    mem.DMA_active = 0;
     
 
     memcpy(mem.bootRom, BOOT_ROM, sizeof(BOOT_ROM));
@@ -261,6 +261,7 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
 
         case 0xFF00 ... 0xFF7F:  // IO Registers
             mem.io[ adr & 0xFF ] = val;
+            mem.DMA_active = adr == 0xFF46 ? 1 : 0; // set DMA_Active Flag on write to 0xFF46;
             break;
 
 
@@ -281,7 +282,18 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
     return 0;
 }
 
+void mem_doDMA()
+{
+    uint16_t sourceAdr = mem.DMA << 8  | 0x0000; 
+    uint16_t targetAdr = 0xFE00;
 
+    for (uint8_t i = 0x00; i <= 0x9F; i++)
+    {
+        mem_write(targetAdr + i, mem_read(sourceAdr + i));
+    }
+    mem.DMA_active = 0;
+
+}
 // 5bit 0x01 - 0x1F - highe rbits discarded
 // if val is higher then max number of banks- max bankis selected
 // if more than 16 banks reg 0x4000-7FFF supplies 2 moire upper bits

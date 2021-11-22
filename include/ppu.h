@@ -3,7 +3,8 @@
 #include <gb.h>
 
 
-#define TRIGGER_IRQ(I)  {uint8_t r = mem_read(I_FLAG); mem_write(I_FLAG, r | (1 << I));}
+#define TRIGGER_IRQ(I)   mem.IF |= ( 1 << I);
+
 
 typedef enum ppu_state_e{
     HBLANK = 0,
@@ -30,7 +31,7 @@ typedef struct ppu_t{
 
     oam_sprite_t oam_sprites[40];
     uint8_t spriteSize;
-    uint8_t framebuffer[160][160];
+    uint16_t framebuffer[144][160];
 
 
     // info flags

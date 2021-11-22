@@ -2,23 +2,104 @@
 #include <SDL2/SDL.h>
 
 extern cpu_t cpu;
+extern ppu_t ppu;
+extern mem_t mem;
 
+char * testfile = "/media/storage/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
 int main (int argc, char* argv[]) 
 {
     cpu_init();
     mem_init();
     ppu_init();
-    
-    if (mem_loadRom(argv[1]))
+    printf(" argc %d\n", argc);
+    if (argc < 2)
     {
-        return 0;
+        if (mem_loadRom(testfile)) return 0;
+    }
+    else 
+    {
+        if (mem_loadRom(argv[1])) return 0;
     }
 
     
     printf("Hello GB \n");
 
 
-    gb_fakepowerup();
+    //HELPERS
+
+    uint8_t quit = 1;
+
+
+    // SDL Main Windows Init
+    void *pixels;
+    int pitch;
+    SDL_Init(SDL_INIT_VIDEO);    
+    SDL_Event event;
+    SDL_Window *mainWindow = SDL_CreateWindow("SDL2 TEST",SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH * 5, SCREEN_HEIGHT * 5, 0);    
+    SDL_Renderer * mainRenderer = SDL_CreateRenderer(mainWindow, -1, 0);
+    SDL_RenderSetLogicalSize(mainRenderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+    SDL_SetRenderDrawColor(mainRenderer, 0x00, 0x00, 0x00, 255);
+    SDL_RenderClear(mainRenderer);
+    SDL_Texture * mainTexture = SDL_CreateTexture(mainRenderer, SDL_PIXELFORMAT_RGB555 , SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+
+
+
+
+
+    while (quit){
+
+        cpu_tick();
+        while (ppu.clock < cpu.clock)
+        {
+            ppu_tick();
+        }
+
+        if (ppu.newFrame)
+        {
+            ppu.newFrame = 0;
+            //draw screen
+            // color from pallette for each pixel
+            SDL_RenderClear(mainRenderer);
+            SDL_LockTexture(mainTexture, NULL, &pixels, &pitch);
+            uint16_t * ptr = ((uint16_t *)pixels);
+
+            // DRAWING OF THE DATA
+
+            for (uint16_t j = 0; j < 144; j++){
+                for (uint16_t i = 0; i < 160; i++){   
+                        ptr[i+(j*160)] = ppu.framebuffer[j][i];
+                    }
+            }
+            
+            // END OF DRAWIN
+            SDL_UnlockTexture(mainTexture); 
+            SDL_RenderCopy(mainRenderer, mainTexture, NULL, NULL);
+            SDL_RenderPresent(mainRenderer);    
+        
+    
+        }
+
+        
+        SDL_PollEvent(&event); 
+        switch (event.type)
+            {
+                case SDL_QUIT:
+                    quit = 0 ;
+
+                    break;                    
+            }
+
+
+
+    }
+
+
+    SDL_DestroyTexture(mainTexture);
+    SDL_DestroyRenderer(mainRenderer);
+    SDL_DestroyWindow(mainWindow);
+    SDL_Quit();    
+
     mem_close();
  
     return 0;

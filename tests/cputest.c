@@ -1,5 +1,5 @@
 #include <gb.h>
-
+#include <dissass.h>
 
 extern cpu_t cpu;
 extern mem_t mem;
@@ -7,19 +7,21 @@ extern ppu_t ppu;
 
 char * testfile = "/mnt/d/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
 uint8_t run = 0;
-uint8_t singlestep = 0;
+
 uint32_t breakpoint;
 
 void cputest_debugPrint(){
 
+    char *currentcode = cpu.prefixCode == 0 ? dissas_opcodename[mem_read(cpu.PC)] : dissas_exopcodename[mem_read(cpu.PC)];
 
     printf("------------------------------------------------------------\n");
-    printf("CPU-Clock: %13d\tPPU-clock: %13d\nOpCode: 0x%02X\t+1: 0x%02X\t+2: 0x%02X\n",cpu.clock, ppu.clock, mem_read(cpu.PC), mem_read(cpu.PC+1), mem_read(cpu.PC+2));
+    printf("OpCode: 0x%02X   %s\t+1: 0x%02X\t+2: 0x%02X\n",mem_read(cpu.PC), currentcode, mem_read(cpu.PC+1), mem_read(cpu.PC+2));
+    printf("CPU-Clock: %13d\tPPU-clock: %13d\n",cpu.clock, ppu.clock);
     printf("Registers:\nAF: 0x%02X\tBC: 0x%02X\tDE: 0x%02X\t HL: 0x%02X\nPC: 0x%02X\tSP: 0x%02X", cpu.AF, cpu.BC, cpu.DE, cpu.HL,  cpu.PC, cpu.SP);
     printf("\t FLAGS:   Z:%d N:%d HC:%d C:%d\n", !!(cpu.F & 1<<7), !!(cpu.F & 1<<6), !!(cpu.F & 1<<5), !!(cpu.F & 1<<4) );
     printf("Memory:\n@SP: 0x%02X\t+1: 0x%02X\t -1 0x%02X\t-2 0x%02X", mem_read(cpu.SP),mem_read(cpu.SP+1),mem_read(cpu.SP-1), mem_read(cpu.SP-2));
     printf("\n@HL: 0x%02X\t +1 0x%02X\n", mem_read(cpu.HL), mem_read(cpu.HL+1));
-    printf("IO Registers:\n");
+    printf("IO Registers:\n"); 
     printf("IF: 0x%02X\tIE: 0x%02X\tLCDC: 0x%02X\tSTAT: 0x%02X\n", mem.IF, mem.IE, mem.LCDC, mem.STAT);
     printf("------------------------------------------------------------\n");
 
@@ -76,6 +78,10 @@ void cputest_fakepowerup()
 // status: we run ok at leas until Px 0x2d2 
 
 int main(void){
+    uint8_t singlestep = 0;
+
+    
+
     cpu_init();
     ppu_init();
     mem_init();

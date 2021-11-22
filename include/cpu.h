@@ -158,6 +158,7 @@ typedef struct cpu_t
     // Others
     uint8_t irq_enable;
     uint32_t clock;
+    uint8_t prefixCode;
 
 }cpu_t;
 

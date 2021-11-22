@@ -13,7 +13,7 @@ extern mem_t mem;
 
 
 
-
+uint16_t mono_pallete[4] = {0x7FFF, 0x7777, 0x2222, 0x000};
 
 
 
@@ -34,6 +34,7 @@ void ppu_init(){
 
 void ppu_tick(){
     uint32_t currentCycle = ppu.clock++ % 115;
+    //ppu.clock++;
 
 
 
@@ -62,7 +63,7 @@ void ppu_tick(){
                 ppu.objEnable = !!(mem.LCDC & (1<<1));
                 ppu.state = PIXEL_TRANSFER;
                 
-                mem.STAT &= (0xFC | ppu.state);
+                mem.STAT =  (mem.STAT & 0xFC) + ppu.state;
                 //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) );//TODO CHECK
             }
             break;
@@ -74,17 +75,17 @@ void ppu_tick(){
 
             if (currentCycle == 64)
             {
-                //ppu_drawLine();;
+                ppu_drawLine();;
                 ppu.state = HBLANK;
                 INC_LY;
                 
                 
 
                 
-                mem.STAT &= (0xFC | ppu.state);
+                mem.STAT =  (mem.STAT & 0xFC) + ppu.state;
                 //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
                 //if (VMEM(STAT) & ( 1 << 3)) TRIGGER_IRQ(IRQ_LCDC);
-                if (mem.STAT & ( 1 << 3)) TRIGGER_IRQ(IRQ_LCDC);
+                if (mem.STAT & ( 1 << 3) ) TRIGGER_IRQ(IRQ_LCDC);
 
 
             }
@@ -101,7 +102,7 @@ void ppu_tick(){
                 ppu.state = OAM_SEARCH;
                 
                 //VMEM(LCDC) = (VMEM(LCDC)) & 0xFC | ppu.state;
-                mem.STAT &= (0xFC | ppu.state);
+                mem.STAT =  (mem.STAT & 0xFC) + ppu.state;
                 //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) );
                 if (mem.STAT & ( 1 << 5)) TRIGGER_IRQ(IRQ_LCDC);
 
@@ -113,7 +114,7 @@ void ppu_tick(){
                 ppu.state = VBLANK;
 
                 //VMEM(LCDC) = (VMEM(LCDC)) & 0xFC | ppu.state; 
-                mem.STAT &= (0xFC | ppu.state);
+                mem.STAT =  (mem.STAT & 0xFC) + ppu.state;
                 //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
                 if (mem.STAT & ( 1 << 4)) TRIGGER_IRQ(IRQ_LCDC);
                 TRIGGER_IRQ(IRQ_VBLANK);
@@ -135,8 +136,9 @@ void ppu_tick(){
                 mem.LY = 0 ;
                 ppu.state = OAM_SEARCH;
                 ppu.newFrame = 1;
+
                 //VMEM(LCDC) = VMEM(LCDC) & 0xFC | ppu.state;
-                mem.STAT &= (0xFC | ppu.state);
+                mem.STAT =  (mem.STAT & 0xFC) + ppu.state;
                 //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
                 if (mem.STAT & ( 1 << 5)) TRIGGER_IRQ(IRQ_LCDC);
 
@@ -158,7 +160,8 @@ void ppu_tick(){
         {            
             TRIGGER_IRQ(IRQ_LCDC);
         } 
-    }  
+    } 
+
     else
     {
         mem.STAT &= ~( 1 << 2 ) ; //VMEM(STAT) &= ~( 1 << 2 );
@@ -172,53 +175,58 @@ void ppu_tick(){
 //
 
 void ppu_drawLine(){
-/*
-    //draw Background
-    
+
+
+    //draw Background    
     // Tile select
     // start at 8000, signed
-    uint16_t tileAdr;
-    uint16_t bg;
-    if ( mem.LCDC & ( 1 << 4 ) ){
-        tileAdr = 0x8000;
-       // int16_t currTile;
+    uint16_t tileBaseAdr;
+    uint16_t mapBaseAdr;
+    uint16_t currentTileAdr;
+    uint16_t currentMapAdr;
+
+    uint8_t singedmap = 0;
+    if ( mem.LCDC & ( 1 << 4 ) )
+    {
+        tileBaseAdr = 0x8000;
     }
     // start at 8800, unsigned
-    else{
-        tileAdr = 0x8800;
-       // uint16_t currTile;
+    else
+    {
+        tileBaseAdr = 0x9000;
+        singedmap = 1;
     }
 
     // BG MAp select start at  9800
-    if (mem.LCDC & ( 1 << 3)){
-        bg = 0x9C00;
-    }
-    // start at 9c00
-    else{
-        bg = 0x9800;
-    }
-    uint8_t d1 = mem.SCX;
-    uint16_t currTile;
-    uint16_t x = mem.SCX/8;
-    uint16_t y = (( (mem.SCY + mem.LY) / 8 )%32) << 2;
-    uint8_t t1, t2;
-    for (uint8_t j = 0; j < 20; j++){
+    mapBaseAdr = mem.LCDC & ( 1 << 3) ? 0x9C00 : 0x9800;
+
+    uint8_t tileByte1, tileByte2;
+
+
+    
+    for (uint8_t j = 0; j < 160; j++)
+    {
         // read tile num from bg map
-        currTile = mem_read( (bg + (y) + ((x + j) % 32)) );
-        // multiply to get correct address (every tile has 16 byte)
-        currTile = tileAdr | currTile << 4;
-
-        // read tile bytes (2 tiles per line) for current LY line
-        t1 = mem_read( currTile + ((mem.LY % 8)*2)    );
-        t2 = mem_read( currTile + ((mem.LY % 8)*2) +1 );
-        //set framebuffer accordingly
-        for (uint8_t i = 0; i < 8; i++){
-            // TODO get color from palette 
-            ppu.framebuffer[mem.LY][(j*8)+i] = (!!(t1 & (0x80 >> i))) + (!!(t2 & (0x80 >> i)))*2; 
+        currentMapAdr = (((mem.SCY + mem.LY) / 8) % 32) * 32 + (((mem.SCX + j) / 8) % 32);
+        if (singedmap == 1)
+        {
+            currentTileAdr = ((int8_t) mem_read(currentMapAdr + mapBaseAdr)* 4) + tileBaseAdr;
         }
-
+        
+        else
+        {
+            currentTileAdr =  (mem_read(currentMapAdr + mapBaseAdr) << 4) + tileBaseAdr;
+        }
+        
+        // read tile bytes (2 tiles per line) for current LY line
+        tileByte1 = mem_read( currentTileAdr + ( (mem.LY % 8)*2)    );
+        tileByte2 = mem_read( currentTileAdr + ( (mem.LY % 8)*2) +1 );
+        //set pixel
+        // if mono gb mode
+        uint8_t x = (( j + mem.SCX ) % 8); 
+        ppu.framebuffer[mem.LY][j] = mono_pallete[ ( ( tileByte1 >> (6-x) ) & 0x2 ) | ( (tileByte2 >> (7-x)) & 0x01) ];  
     }
-*/
+
 
 /*
     //draw sprite
