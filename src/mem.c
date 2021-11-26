@@ -216,6 +216,9 @@ uint8_t mem_read(uint16_t adr)
 
 uint8_t mem_write(uint16_t adr, uint8_t val)
 {
+
+
+
     switch (adr)
     {
         case 0x0000 ... 0x1999:  // eRam Enable 0x0A = Enable        

@@ -6,8 +6,7 @@
 
 // ACCESS FUNCTIONS
 #define REG(r) cpu.r
-//#define READMEM(adr) mem_read(adr);
-//#define WRITEMEM(adr, val) mem_write(mr, val;
+
 #define FLAG(f) cpu.f
 
 
@@ -17,9 +16,11 @@
 // LD_R_R
 // D Destination, S source
 #define LD_R_n(D, S)  D = S
-#define LD_R_nn(D) { D =  mem_read(REG(PC++)); D |= mem_read(REG(PC++))  << 8 ;  }
+#define LD_R_nn(D) { D =  mem_read(REG(PC++)); D |= ( uint16_t )mem_read(REG(PC++))  << 8 ;  }
 
 #define LD_MEM_n(D, S)  mem_write(D, S);
+
+#define LDHL        { FLAG(Z) = FLAG(N) = 0; int8_t i = (int8_t) mem_read(REG(PC)++); FLAG(HC) = ( ( REG(SP) & 0x0FFF) + i) > 0x0FFF; FLAG(CY) = (REG(SP) - i) < 0x0; REG(HL) = REG(SP) + i;}
 
 
 
@@ -36,23 +37,23 @@
 #define INC_R(S)      { FLAG(N) = 0; FLAG(HC) = (S & 0xF) == 0xF; S++; FLAG(Z) = S == 0; }
 #define DEC_R(S)      { FLAG(N) = 1; FLAG(HC) = (S ==  0);        S--; FLAG(Z) = S == 0; }
 
-#define INC_HL      { uint8_t n = mem_read(REG(HL)); FLAG(N) = 0; FLAG(HC) = (n & 0xF) == 0xF; n++; FLAG(Z) = n == 0; mem_write(REG(HL), n);}
-#define DEC_HL      { uint8_t n = mem_read(REG(HL)); FLAG(N) = 1; FLAG(HC) = (n ==  0);        n--; FLAG(Z) = n == 0; mem_write(REG(HL), n);}
+#define INC_HL      { uint8_t n = mem_read(REG(HL)); FLAG(N) = 0; FLAG(HC) = (n & 0xF) == 0xF; n++; FLAG(Z) = n == 0; mem_write(REG(HL), n );}
+#define DEC_HL      { uint8_t n = mem_read(REG(HL)); FLAG(N) = 1; FLAG(HC) = (n ==  0);        n--; FLAG(Z) = n == 0; mem_write(REG(HL), n );}
 
 
 
 #define CP_R(S)       { uint8_t i = S; FLAG(N) = 1; FLAG(Z) = ( REG(A) == i ); FLAG(CY) = REG(A) < i; FLAG(HC) = ((REG(A) & 0xF) < (i & 0xF)); }
 
-#define ADD_SP        { FLAG(Z) = FLAG(N) = 0; uint8_t i = mem_read(REG(PC)++); REG(SP += (int8_t) i;)}
+#define ADD_SP        { FLAG(Z) = FLAG(N) = 0; int8_t i = (int8_t) mem_read(REG(PC)++); FLAG(HC) = ( ( REG(SP) & 0x0FFF) + i) > 0x0FFF; FLAG(CY) = (REG(SP) - i) < 0x0; REG(SP) += i;}
 // 16 BIT ARITHEMITC
 // S = Register
 #define INC_RR(S)     { S++;  }
 #define DEC_RR(S)     { S--;  }
-#define ADD_RR(S)     { FLAG(N) = 1; FLAG(HC) = ((S % 0x0FFF) + (REG(HL) & 0x0FFF)) > 0x0FFF; REG(HL) += S; FLAG(CY) = (REG(HL) - S) < 0x0;   }
+#define ADD_RR(S)     { FLAG(N) = 1; FLAG(HC) = ( (S & 0x0FFF) + ( REG(HL) & 0x0FFF) ) > 0x0FFF; REG(HL) += S; FLAG(CY) = (REG(HL) - S) < 0x0;   }
 
 // JMP AND CALL 
 // F = Condition to execute
-#define JMP_n(F)      {  uint8_t i = mem_read(REG(PC++)); if (F) {REG(PC) += (int8_t) i; cpu.clock  += 3;} }
+#define JMP_n(F)      {  uint8_t i = mem_read(REG(PC++)); if (F) { REG(PC) += (int8_t) i; cpu.clock  += 3;} }
 #define JMP_nn(F)     { uint16_t i = mem_read(REG(PC++)); i |= (mem_read(REG(PC++)) << 8); if (F) {REG(PC) = i; cpu.clock  += 1;} ;}
 #define CALL(F)       { uint16_t i = mem_read(REG(PC++)); i |= (mem_read(REG(PC++)) << 8); if (F) {PUSH(REG(PC)); REG(PC) = i; cpu.clock  += 3;} ; }
 #define RET(F)        { if (F) { POP(REG(PC)); cpu.clock += 4; }; }
@@ -61,20 +62,17 @@
 #define RLC(S)          FLAG(N) = FLAG(HC) = 0; FLAG(CY) = !!(S & 0x80) ; S = (S << 1) + (FLAG(CY) > 0) ; FLAG(Z) = S == 0;	
 #define RL(S)           FLAG(N) = FLAG(HC) = 0; short f  = S >> 7       ; S = (S << 1) | FLAG(CY)       ; FLAG(Z) = S == 0;	FLAG(CY) = !!f;  
 #define RRC(S)          FLAG(N) = FLAG(HC) = 0; FLAG(CY) = S & 0x01     ; S = (S >> 1) | (FLAG(CY) << 7); FLAG(Z) = S == 0;	
-#define RR(S)           FLAG(N) = FLAG(HC) = 0; short f  = S & 0x01     ; S = (S >> 1) | (FLAG(CY) << 7); FLAG(Z) = S == 0;  FLAG(CY) = !!f;	 
+#define RR(S)           FLAG(N) = FLAG(HC) = 0; short f  = S & 0x01     ; S = (S >> 1) | (FLAG(CY) << 7); FLAG(Z) = S == 0; FLAG(CY) = !!f;	 
 #define SLA(S)          FLAG(N) = FLAG(HC) = 0; FLAG(CY) = !!(S  & 0x80); S = S << 1                    ; FLAG(Z) = S == 0;	
 #define SRA(S)          FLAG(N) = FLAG(HC) = 0; FLAG(CY) = S & 0x01     ; S = (S & 0x80) | (S >> 1)     ; FLAG(Z) = S == 0;	
 #define SRL(S)          FLAG(N) = FLAG(HC) = 0; FLAG(CY) = S & 0x01     ; S = (S >> 1)                  ; FLAG(Z) = S == 0;	
-#define SWAP(S)         FLAG(N) = FLAG(CY) =    FLAG(HC) = 0            ; S = S >> 4 | S << 4           ; FLAG(Z) = S == 0;  
+#define SWAP(S)         FLAG(N) = FLAG(CY) =    FLAG(HC) = 0            ; S = (S >> 4) | (S << 4)       ; FLAG(Z) = S == 0;  
 #define RES(B , S)      S &= ~( 1 << B );  
 #define SET(B , S)      S |=  ( 1 << B );  
 #define BIT(B , S)      FLAG(N) = 0; FLAG(HC) = 1; FLAG(Z) = !( ( S & (1 << B)) );  
 
 
-//#define PUSH(S)       { MEM(--REG(SP)) = (S >> 8); MEM(--REG(SP))= S & 0xFF ; } 
 #define PUSH(S)       { mem_write(--REG(SP),(uint8_t) (S >> 8)); mem_write(--REG(SP), (uint8_t) (S & 0xFF)); } 
-//#define PUSHA         { MEM(--REG(SP)) = REG(A)  ; MEM(--REG(SP))= FLAG(R); }
-//#define PUSHA         { write_mem(--REG(SP), REG(A) ; MEM(--REG(SP))= FLAG(R); }
 #define POP(D)        { D = mem_read(REG(SP)++); D |= mem_read(REG(SP)++)  << 8;        }
 
 #define RST(I)        { PUSH( (REG(PC)-1) );  REG(PC) = 0x0000 + I;           }

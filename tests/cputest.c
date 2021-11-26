@@ -8,7 +8,7 @@ extern ppu_t ppu;
 char * testfile = "/mnt/d/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
 uint8_t run = 0;
 
-uint32_t breakpoint;
+
 
 void cputest_debugPrint(){
 
@@ -23,6 +23,7 @@ void cputest_debugPrint(){
     printf("\n@HL: 0x%02X\t +1 0x%02X\n", mem_read(cpu.HL), mem_read(cpu.HL+1));
     printf("IO Registers:\n"); 
     printf("IF: 0x%02X\tIE: 0x%02X\tLCDC: 0x%02X\tSTAT: 0x%02X\n", mem.IF, mem.IE, mem.LCDC, mem.STAT);
+    printf("SCY: 0x%X\t SCX: 0x%X\tLY: 0x%X\n", mem.SCY, mem.SCX, mem.LY);
     printf("------------------------------------------------------------\n");
 
 }
@@ -77,9 +78,19 @@ void cputest_fakepowerup()
 }
 // status: we run ok at leas until Px 0x2d2 
 
+typedef void (*funArr_t)(void);
+void myTest(void){
+    printf("This is my test function\n");
+}
+
+void myTest2(void){
+    printf("This is my test function2\n");
+}
+
+
 int main(void){
     uint8_t singlestep = 0;
-
+    uint32_t breakpoint;
     
 
     cpu_init();
@@ -94,6 +105,18 @@ int main(void){
     printf("video is currently not supported\n");
     printf("Start test with rom file %s and init Values:\n", testfile);
     
+    cpu.PC = 0xC000;
+    cpu.SP = 0x10;
+    mem_write(0xC000, 0x8);
+    mem_write(0xC001, 0xff);
+
+    FLAG(Z) = FLAG(N) = 0; 
+    int8_t i = (int8_t) mem_read(REG(PC)++); 
+    FLAG(HC) = ( ( REG(SP) & 0x0FFF) + i) > 0x0FFF; 
+    FLAG(CY) = (REG(SP) - i) < 0x0; REG(SP) += i;
+    printf( " SP1 0x%x + i 0x%x ", cpu.SP, i);
+    ADD_SP;
+    printf( " SP2 0x%x \n", cpu.SP);
 
 
     printf("Singlestep on? Y/y\n");
@@ -125,7 +148,16 @@ int main(void){
         {
             ppu_tick();
         }
+        if (mem.DMA_active) { mem_doDMA(); mem.DMA_active = 0; }
 
+        // blarggs serial output
+        
+        if (mem_read(0xff02) == 0x81) {
+
+            char c = mem_read(0xff01);
+            printf("%c", c);
+            mem_write(0xff02,  0x0);
+        }
 
         if (cpu.PC == breakpoint || singlestep)
         {
@@ -148,6 +180,8 @@ int main(void){
 
         }
     }
+
+
 
     return 0; 
 } 

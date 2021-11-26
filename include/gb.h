@@ -1,6 +1,8 @@
 #ifndef GB
 #define GB
 #define DEBUG
+#include <SDL2/SDL.h>
+#include <window.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <cpu.h>
