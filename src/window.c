@@ -55,3 +55,16 @@ void window_close()
     SDL_DestroyWindow(mainWindow);
     SDL_Quit();    
 }
+
+void window_getIO(uint8_t * io)
+{
+        SDL_PollEvent(&event); 
+        switch (event.type)
+        {
+            case SDL_QUIT:
+                *io = 0 ;
+
+                break;                    
+        }
+
+}

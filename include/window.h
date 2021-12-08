@@ -14,6 +14,7 @@ void window_init();
 void window_drawFrame(uint16_t framebuffer[SCREEN_HEIGHT][SCREEN_WIDTH]);
 void window_close();
 
+void window_getIO(uint8_t * io);
 
 
 
