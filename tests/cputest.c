@@ -5,7 +5,7 @@ extern cpu_t cpu;
 extern mem_t mem;
 extern ppu_t ppu;
 
-char * testfile = "/mnt/d/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
+char * testfile = "/media/storage/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
 uint8_t run = 0;
 
 
@@ -78,14 +78,7 @@ void cputest_fakepowerup()
 }
 // status: we run ok at leas until Px 0x2d2 
 
-typedef void (*funArr_t)(void);
-void myTest(void){
-    printf("This is my test function\n");
-}
 
-void myTest2(void){
-    printf("This is my test function2\n");
-}
 
 
 int main(void){
@@ -96,6 +89,7 @@ int main(void){
     cpu_init();
     ppu_init();
     mem_init();
+    window_init();
     mem_loadRom(testfile);
     cputest_fakepowerup();
     cputest_debugPrint();
@@ -105,18 +99,6 @@ int main(void){
     printf("video is currently not supported\n");
     printf("Start test with rom file %s and init Values:\n", testfile);
     
-    cpu.PC = 0xC000;
-    cpu.SP = 0x10;
-    mem_write(0xC000, 0x8);
-    mem_write(0xC001, 0xff);
-
-    FLAG(Z) = FLAG(N) = 0; 
-    int8_t i = (int8_t) mem_read(REG(PC)++); 
-    FLAG(HC) = ( ( REG(SP) & 0x0FFF) + i) > 0x0FFF; 
-    FLAG(CY) = (REG(SP) - i) < 0x0; REG(SP) += i;
-    printf( " SP1 0x%x + i 0x%x ", cpu.SP, i);
-    ADD_SP;
-    printf( " SP2 0x%x \n", cpu.SP);
 
 
     printf("Singlestep on? Y/y\n");
@@ -159,6 +141,18 @@ int main(void){
             mem_write(0xff02,  0x0);
         }
 
+        window_getIO(&run);
+
+        if (ppu.newFrame)
+        {
+            ppu.newFrame = 0;
+            //draw screen
+            // color from pallette for each pixel
+            window_drawFrame(ppu.framebuffer);
+
+
+        }
+
         if (cpu.PC == breakpoint || singlestep)
         {
             cputest_debugPrint();
@@ -180,7 +174,9 @@ int main(void){
 
         }
     }
-
+    
+    window_close();
+    mem_close();
 
 
     return 0; 
