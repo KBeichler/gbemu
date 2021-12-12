@@ -6,6 +6,7 @@ extern mem_t mem;
 extern ppu_t ppu;
 
 char * testfile = "/media/storage/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
+//char * testfile = "/mnt/d/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
 uint8_t run = 0;
 
 
@@ -80,12 +81,14 @@ void cputest_fakepowerup()
 
 
 
-
 int main(void){
-    uint8_t singlestep = 0;
+    
     uint32_t breakpoint;
+
+    uint8_t singlestep = 0;
     
 
+    printf("0x%x \n", singlestep);
     cpu_init();
     ppu_init();
     mem_init();
@@ -94,9 +97,7 @@ int main(void){
     cputest_fakepowerup();
     cputest_debugPrint();
 
-
     printf("CPU Test with blargs opcode test\n");
-    printf("video is currently not supported\n");
     printf("Start test with rom file %s and init Values:\n", testfile);
     
 
@@ -126,7 +127,7 @@ int main(void){
     {
         
         cpu_tick();
-        while (ppu.clock < cpu.clock)
+        while (ppu.clock <  ( cpu.clock >> 1) )
         {
             ppu_tick();
         }
@@ -141,7 +142,7 @@ int main(void){
             mem_write(0xff02,  0x0);
         }
 
-        window_getIO(&run);
+        
 
         if (ppu.newFrame)
         {
@@ -173,6 +174,8 @@ int main(void){
             }
 
         }
+
+        window_getIO(&run);
     }
     
     window_close();

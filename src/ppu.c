@@ -10,6 +10,7 @@
 ppu_t ppu;
 uint8_t framebuffer[SCREEN_WIDTH][SCREEN_HEIGHT] ;
 extern mem_t mem;
+extern cpu_t cpu;
 
 
 

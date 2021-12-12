@@ -57,10 +57,10 @@ int8_t s;
 
 // JMP AND CALL 
 // F = Condition to execut
-#define JMP_n(F)       i = mem_read(REG(PC++)); if (F) { REG(PC) += (int8_t) i; cpu.clock  += 3;} 
-#define JMP_nn(F)      n = mem_read(REG(PC++)); n |= (mem_read(REG(PC++)) << 8); if (F) { REG(PC) = n; cpu.clock  += 1; } ;
-#define CALL(F)        n = mem_read(REG(PC++)); n |= (mem_read(REG(PC++)) << 8); if (F) { PUSH(REG(PC)); REG(PC) = n; cpu.clock  += 3; }
-#define RET(F)         if (F) { POP(REG(PC)); cpu.clock += 4; }
+#define JMP_n(F)       i = mem_read(REG(PC++)); if (F) { REG(PC) += (int8_t) i; cpu.currentCycleLength  += 3;} 
+#define JMP_nn(F)      n = mem_read(REG(PC++)); n |= (mem_read(REG(PC++)) << 8); if (F) { REG(PC) = n; cpu.currentCycleLength  += 1; } ;
+#define CALL(F)        n = mem_read(REG(PC++)); n |= (mem_read(REG(PC++)) << 8); if (F) { PUSH(REG(PC)); REG(PC) = n; cpu.currentCycleLength  += 3; }
+#define RET(F)         if (F) { POP(REG(PC)); cpu.currentCycleLength += 4; }
 #define RST(I)         PUSH( REG(PC) );  REG(PC) = 0x0000 + I;           
 
 // SHIFT OPERATIONS
@@ -84,7 +84,7 @@ int8_t s;
 
 #define ENABLE_IRQ    cpu.irq_enable = 1;
 #define DISABLE_IRQ   cpu.irq_enable = 0;
-
+#define TRIGGER_IRQ(I)   if ( cpu.irq_enable && mem.IE & (1 << I) ) { mem.IF |= ( 1 << I); }
 
 
 /*
@@ -161,7 +161,11 @@ typedef struct cpu_t
     // Others
     uint8_t irq_enable;
     uint32_t clock;
+    uint8_t currentCycleLength;
     uint8_t prefixCode;
+
+    uint16_t _DIVhelper;
+    uint16_t _TIMAhelper;
 
 }cpu_t;
 
@@ -175,8 +179,7 @@ void cpu_init(void);
 void cpu_tick(void);
 
 
-
-
+void cpu_updateTimer();
 
 
 

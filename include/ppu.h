@@ -3,7 +3,6 @@
 #include <gb.h>
 
 
-#define TRIGGER_IRQ(I)   mem.IF |= ( 1 << I);
 
 
 typedef enum ppu_state_e{

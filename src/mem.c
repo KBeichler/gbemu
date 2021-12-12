@@ -263,8 +263,20 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
 
 
         case 0xFF00 ... 0xFF7F:  // IO Registers
-            mem.io[ adr & 0xFF ] = val;
-            mem.DMA_active = adr == 0xFF46 ? 1 : 0; // set DMA_Active Flag on write to 0xFF46;
+            if (adr == 0xFF04) // DIV is 0 on write
+            {                
+                mem.io[ adr & 0xFF ] = 0;
+                break;                
+            }
+            else if ( adr == 0xFF46)
+            {
+                mem.DMA_active = 1; // set DMA_Active Flag on write to 0xFF46;
+            }
+            else
+            {
+                mem.io[ adr & 0xFF ] = val;
+            }
+            
             break;
 
 

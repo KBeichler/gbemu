@@ -89,7 +89,7 @@ int main (int argc, char* argv[])
     while (quit){
 
         cpu_tick();
-        while (ppu.clock < cpu.clock)
+        while (ppu.clock < (cpu.clock << 1) )
         {
             ppu_tick();
         }

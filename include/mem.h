@@ -39,11 +39,12 @@ typedef struct mem_t
             uint8_t P1;
             uint8_t SB;
             uint8_t SC;
+            uint8_t _offset3;
             uint8_t DIV;
             uint8_t TIMA;
             uint8_t TMA;
             uint8_t TAC;
-            uint8_t _offset [0x08];
+            uint8_t _offset [0x07];
             uint8_t IF;
             uint8_t _offset2 [ 0x30];
             uint8_t LCDC;

@@ -76,7 +76,7 @@ void cpu_tick()
     // if current opcode is not a prefixed opcode
     if (cpu.prefixCode == 0)
     {
-        cpu.clock += OpCodeTimingTable[code];
+        cpu.currentCycleLength = OpCodeTimingTable[code];
         switch (code)
         {
             case    0x00:   {                                               }; break;
@@ -137,7 +137,7 @@ void cpu_tick()
             case	0x2F:	{ FLAG(N) = FLAG(HC) = 1; REG(A) ^= 0xFF;	    }; break;
             case	0x30:	{ JMP_n( FLAG(CY) == 0);                        }; break;
             case	0x31:	{ LD_RR_D16(REG(SP));					        }; break;
-            case	0x32:	{ LD_MEM_n( REG(BC--), REG(A) );			    }; break;
+            case	0x32:	{ LD_MEM_n( REG(HL--), REG(A) );			    }; break;
             case	0x33:	{ INC_RR(REG(SP));								}; break;
             case	0x34:	{ INC_HL;                                       }; break;
             case	0x35:	{ DEC_HL;                                       }; break;
@@ -364,7 +364,7 @@ void cpu_tick()
     else
     {
         // 0x-7 and 0x-E ecces memory and take 4 cylces
-        cpu.clock += (code % 7 == 0 && code != 0) ? 4 : 2;
+        cpu.currentCycleLength = (code % 7 == 0 && code != 0) ? 4 : 2;
         cpu.prefixCode = 0;
         switch (code)
         {
@@ -693,9 +693,61 @@ void cpu_tick()
 
     }
 
+    cpu.clock += cpu.currentCycleLength;
     
 
+    cpu_updateTimer();
 
+
+}
+
+
+
+void cpu_updateTimer()
+{
+    cpu._DIVhelper += cpu.currentCycleLength;
+    // TODO in double speed mode
+    uint16_t divider = 64;
+    if ( cpu._DIVhelper >= divider)
+    {
+        cpu._DIVhelper -= divider;
+        mem.DIV++;
+    }
+
+    if (mem.TAC & ( 1<<2 )) // if counter is enabled
+    {
+        cpu._TIMAhelper += cpu.currentCycleLength;
+        uint8_t preOverflow = mem.TIMA == 0xFF ? 1 : 0;
+        uint16_t TIMAdivider; // get divider. in this case its already divides by 4 because i only count cpu steps, not the real clock
+        switch (mem.TAC & 0x3)
+        {
+            case 0:
+                TIMAdivider = 256;
+                break;
+            case 1:
+                TIMAdivider = 4;
+                break;
+            case 2:
+                TIMAdivider = 16;
+                break;
+            case 3:
+                TIMAdivider = 64;
+                break;
+        }
+
+        if (cpu._TIMAhelper >= TIMAdivider)
+        {
+            mem.TIMA++;
+            cpu._TIMAhelper -= TIMAdivider;
+        }
+
+        if (preOverflow && mem.TIMA == 0x00) // overflow happened
+        {
+            mem.TIMA = mem.TMA;
+            TRIGGER_IRQ(IRQ_TIMER);
+        }
+
+    }
 
 
 }
