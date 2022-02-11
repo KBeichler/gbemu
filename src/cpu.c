@@ -28,9 +28,10 @@ extern mem_t mem;
 
 void cpu_init(){
     memset((void *) &cpu, 0, sizeof(cpu_t));
-    cpu.prefixCode = 0;
-    
+    cpu.prefixCode = 0;    
     cpu.irq_enable = 1;
+
+
 
 }
 
@@ -49,7 +50,6 @@ void cpu_init(){
 void cpu_tick()
 {
 
-
     // check interrupts
     if (cpu.irq_enable == 1)
     {
@@ -57,7 +57,6 @@ void cpu_tick()
         {
             if ( ( mem.IE & (1 << i)) && ( mem.IF & (1 << i)) )
             {
-
                 PUSH(REG(PC));
                 REG(PC) = IRQ_TABLE[i];
                 //clear flag
@@ -68,8 +67,6 @@ void cpu_tick()
 
 
     }
-
-
 
 
     uint8_t code = mem_read(REG(PC)++);
@@ -707,10 +704,10 @@ void cpu_updateTimer()
 {
     cpu._DIVhelper += cpu.currentCycleLength;
     // TODO in double speed mode
-    uint16_t divider = 64;
-    if ( cpu._DIVhelper >= divider)
+    uint16_t DIVdivider = 64;
+    if ( cpu._DIVhelper >= DIVdivider)
     {
-        cpu._DIVhelper -= divider;
+        cpu._DIVhelper -= DIVdivider;
         mem.DIV++;
     }
 
@@ -718,7 +715,7 @@ void cpu_updateTimer()
     {
         cpu._TIMAhelper += cpu.currentCycleLength;
         uint8_t preOverflow = mem.TIMA == 0xFF ? 1 : 0;
-        uint16_t TIMAdivider; // get divider. in this case its already divides by 4 because i only count cpu steps, not the real clock
+        uint16_t TIMAdivider; // get divider. in this case its already divides by 4 because the program only count cpu steps, not the real clock
         switch (mem.TAC & 0x3)
         {
             case 0:
@@ -744,6 +741,7 @@ void cpu_updateTimer()
         if (preOverflow && mem.TIMA == 0x00) // overflow happened
         {
             mem.TIMA = mem.TMA;
+            preOverflow = 0;
             TRIGGER_IRQ(IRQ_TIMER);
         }
 
@@ -751,6 +749,8 @@ void cpu_updateTimer()
 
 
 }
+
+
 
 
 

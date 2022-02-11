@@ -25,6 +25,7 @@ void cputest_debugPrint(){
     printf("IO Registers:\n"); 
     printf("IF: 0x%02X\tIE: 0x%02X\tLCDC: 0x%02X\tSTAT: 0x%02X\n", mem.IF, mem.IE, mem.LCDC, mem.STAT);
     printf("SCY: 0x%X\t SCX: 0x%X\tLY: 0x%X\n", mem.SCY, mem.SCX, mem.LY);
+    printf("DIV: 0x%X\t TIMA: 0x%X\tTMA: 0x%X\tTAC: 0%X\n", mem.DIV, mem.TIMA, mem.TMA, mem.TAC);
     printf("------------------------------------------------------------\n");
 
 }
@@ -84,6 +85,7 @@ void cputest_fakepowerup()
 int main(void){
     
     uint32_t breakpoint;
+    char  input[32];
 
     uint8_t singlestep = 0;
     
@@ -112,8 +114,9 @@ int main(void){
     while ((getchar()) != '\n');
     if (!singlestep){
         printf("Set Breakpoint PC: ");
-        if (scanf( "%x", &breakpoint ) == 1)
+        if (scanf( "%s", input ) >= 1)
         {
+            breakpoint = strtoul(input, NULL, 16);
             run = 1;
         }
         else
@@ -133,16 +136,13 @@ int main(void){
         }
         if (mem.DMA_active) { mem_doDMA(); mem.DMA_active = 0; }
 
-        // blarggs serial output
-        
+        // blarggs serial output        
         if (mem_read(0xff02) == 0x81) {
 
             char c = mem_read(0xff01);
             printf("%c", c);
             mem_write(0xff02,  0x0);
         }
-
-        
 
         if (ppu.newFrame)
         {
@@ -161,26 +161,34 @@ int main(void){
            
             if (!singlestep)
             {
-                printf("Next Breakpoint PC: ");                
-                if (scanf( "%x", &breakpoint ) == 1)
+                printf("Next Breakpoint PC: ");    
+
+                if ( scanf( "%s", input ) >= 1 )
                 {
                     run = 1;
+                    if ( input[0] == 's' ) singlestep = 1;
+                    else breakpoint = strtoul(input, NULL, 16);
                 }
+
             }
             else
             {
-                printf("Abort with y: ");
-                if (getchar() == 'y') run = 0;
+                printf("Abort with y, cont with n, <n> for breakpoitn ");
+                scanf( "%s", input );
+                if (input[0] == 'y') run = 0;
+                else if (input[0] == 'n');
+                else
+                {
+                    breakpoint = strtoul(input, NULL, 16);
+                    singlestep = 0;
+                } 
             }
-
         }
-
         window_getIO(&run);
     }
     
     window_close();
-    mem_close();
-
+    mem_close(); 
 
     return 0; 
 } 
