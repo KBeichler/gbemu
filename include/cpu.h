@@ -31,8 +31,8 @@ int8_t s;
 // S = Register
 #define ADD_R(S)        i = S; FLAG(HC) =  ((REG(A) & 0xF) + (i & 0xF)) > 0xF;  REG(A) += i; FLAG(Z) = (REG(A) == 0); FLAG(N) = 0; FLAG(CY) = (REG(A) - i) < 0x00; 
 #define SUB_R(S)        i = S; FLAG(HC) =   (REG(A) & 0xF) < (i & 0xF) ;        REG(A) -= i; FLAG(Z) = (REG(A) == 0); FLAG(N) = 1; FLAG(CY) = (REG(A) + i) > 0xFF; 
-#define ADC_R(S)        i = S; n = FLAG(HC); FLAG(HC) =  ((REG(A) & 0xF) + (i & 0xF)) > 0xF;  REG(A) = REG(A) + i + n; FLAG(Z) = (REG(A) == 0); FLAG(N) = 0; FLAG(CY) = (REG(A) - i-n) < 0x00;
-#define SBC_R(S)        i = S; n = FLAG(HC); FLAG(HC) =   (REG(A) & 0xF) < (i & 0xF);  REG(A) = REG(A) - i - n; FLAG(Z) = (REG(A) == 0); FLAG(N) = 1; FLAG(CY) = (REG(A) + i+n) > 0xFF;
+#define ADC_R(S)        i = S; n = FLAG(CY); FLAG(HC) =  ((REG(A) & 0xF) + (i & 0xF) +n )  > 0xF;  REG(A) = REG(A) + i + n; FLAG(Z) = (REG(A) == 0); FLAG(N) = 0; FLAG(CY) = (REG(A) - i-n) < 0x00;
+#define SBC_R(S)        i = S; n = FLAG(CY); FLAG(HC) =   (REG(A) & 0xF) < ((i & 0xF) +n)       ;  REG(A) = REG(A) - i - n; FLAG(Z) = (REG(A) == 0); FLAG(N) = 1; FLAG(CY) = (REG(A) + i+n) > 0xFF;
 #define AND_R(S)       FLAG(N) = FLAG(CY) = 0; FLAG(HC) = 1; REG(A) &= S; FLAG(Z) = (REG(A) == 0);  
 #define XOR_R(S)       FLAG(N) = FLAG(CY) =    FLAG(HC) = 0; REG(A) ^= S; FLAG(Z) = (REG(A) == 0);  
 #define OR_R(S)        FLAG(N) = FLAG(CY) =    FLAG(HC) = 0; REG(A) |= S; FLAG(Z) = (REG(A) == 0);  
@@ -44,16 +44,17 @@ int8_t s;
 #define INC_HL       i = mem_read(REG(HL)); FLAG(N) = 0; FLAG(HC) = (i & 0xF) == 0xF; i++; FLAG(Z) = i == 0; mem_write(REG(HL), i );
 #define DEC_HL       i = mem_read(REG(HL)); FLAG(N) = 1; FLAG(HC) = (i & 0xF) == 0x0; i--; FLAG(Z) = i == 0; mem_write(REG(HL), i );
 
+                            //FLAG(HC) = ( (val & 0xF) < (e & 0xF)) ;
+                            //FLAG(CY) = ( (val & 0xFF)<(e & 0xFF) ); 
 
 
-
-#define LDHL        FLAG(Z) = FLAG(N) = 0; s = (int8_t) mem_read(REG(PC)++); FLAG(HC) = ( ( REG(SP) & 0x0FFF) + s) > 0x0FFF; REG(HL) = REG(SP) + s; FLAG(CY) = (REG(SP) - s - REG(SP)) < 0x0; 
-#define ADD_SP      FLAG(Z) = FLAG(N) = 0; s = (int8_t) mem_read(REG(PC)++); FLAG(HC) = ( ( REG(SP) & 0x0FFF) + s) > 0x0FFF; REG(SP) += s; FLAG(CY) = (REG(SP) - s) < 0x0; 
+#define LDHL        FLAG(Z) = FLAG(N) = 0; s = (int8_t) mem_read(REG(PC)++); n = REG(SP) + s; FLAG(HC) = ( (n & 0xF) < (s & 0xF)) ; FLAG(CY) = ( (n & 0xFF)<(s & 0xFF) );  REG(HL) = n; 
+#define ADD_SP      FLAG(Z) = FLAG(N) = 0; s = (int8_t) mem_read(REG(PC)++); n = REG(SP) + s; FLAG(HC) = ( (n & 0xF) < (s & 0xF)) ; FLAG(CY) = ( (n & 0xFF)<(s & 0xFF) );  REG(SP) = n; 
 // 16 BIT ARITHEMITC
 // S = Register
 #define INC_RR(S)      S++;  
 #define DEC_RR(S)      S--;  
-#define ADD_RR(S)     FLAG(N) = 0; FLAG(HC) = ( (S & 0x0FFF) + ( REG(HL) & 0x0FFF) ) > 0x0FFF; REG(HL) += S; FLAG(CY) = (REG(HL) - S) < 0x0;   
+#define ADD_RR(S)     FLAG(N) = 0; n = S; FLAG(HC) = ( (S & 0x0FFF) + ( REG(HL) & 0x0FFF) ) > 0x0FFF; REG(HL) += S; FLAG(CY) = (REG(HL) - n) < 0x0;   
 
 // JMP AND CALL 
 // F = Condition to execut
@@ -82,9 +83,9 @@ int8_t s;
 
 
 
-#define ENABLE_IRQ    cpu.irq_enable = 1;
-#define DISABLE_IRQ   cpu.irq_enable = 0;
-#define TRIGGER_IRQ(I)   if ( cpu.irq_enable && mem.IE & (1 << I) ) { mem.IF |= ( 1 << I); }
+#define ENABLE_IRQ     cpu.irq_enable = 1;
+#define DISABLE_IRQ    cpu.irq_enable = 0;
+#define TRIGGER_IRQ(I) { mem.IF |= ( 1 << I); }
 
 
 /*
@@ -163,7 +164,7 @@ typedef struct cpu_t
     uint32_t clock;
     uint8_t currentCycleLength;
     uint8_t prefixCode;
-
+    uint8_t halt;
     uint16_t _DIVhelper;
     uint16_t _TIMAhelper;
 
@@ -179,8 +180,10 @@ void cpu_init(void);
 void cpu_tick(void);
 
 
-void cpu_updateTimer();
+void cpu_updateTimer(void);
 
+
+void DAA(void);
 
 
 

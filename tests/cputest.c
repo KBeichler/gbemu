@@ -22,10 +22,11 @@ void cputest_debugPrint(){
     printf("\t FLAGS:   Z:%d N:%d HC:%d C:%d\n", !!(cpu.F & 1<<7), !!(cpu.F & 1<<6), !!(cpu.F & 1<<5), !!(cpu.F & 1<<4) );
     printf("Memory:\n@SP: 0x%02X\t+1: 0x%02X\t -1 0x%02X\t-2 0x%02X", mem_read(cpu.SP),mem_read(cpu.SP+1),mem_read(cpu.SP-1), mem_read(cpu.SP-2));
     printf("\n@HL: 0x%02X\t +1 0x%02X\n", mem_read(cpu.HL), mem_read(cpu.HL+1));
-    printf("IO Registers:\n"); 
+    printf("IO Registers:\t\t IRQ_Enable: %x\n", cpu.irq_enable); 
     printf("IF: 0x%02X\tIE: 0x%02X\tLCDC: 0x%02X\tSTAT: 0x%02X\n", mem.IF, mem.IE, mem.LCDC, mem.STAT);
     printf("SCY: 0x%X\t SCX: 0x%X\tLY: 0x%X\n", mem.SCY, mem.SCX, mem.LY);
     printf("DIV: 0x%X\t TIMA: 0x%X\tTMA: 0x%X\tTAC: 0%X\n", mem.DIV, mem.TIMA, mem.TMA, mem.TAC);
+    //printf("hRam: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", mem.hRam[0], mem.hRam[1], mem.hRam[2], mem.hRam[3], mem.hRam[4], mem.hRam[5]);
     printf("------------------------------------------------------------\n");
 
 }
@@ -79,23 +80,33 @@ void cputest_fakepowerup()
 
 }
 // status: we run ok at leas until Px 0x2d2 
+ 
 
 
-
-int main(void){
+int main (int argc, char* argv[])
+{
     
     uint32_t breakpoint;
     char  input[32];
 
     uint8_t singlestep = 0;
-    
+    FLAG(HC) = ( (n & 0xF) < (s & 0xF)) ; FLAG(CY) = ( (n & 0xFF)<(s & 0xFF) );
 
     printf("0x%x \n", singlestep);
     cpu_init();
     ppu_init();
     mem_init();
-    window_init();
-    mem_loadRom(testfile);
+    window_init(); 
+
+    if (argc < 2)
+    {
+        if (mem_loadRom(testfile)) return 0;
+    }
+    else 
+    {
+        if (mem_loadRom(argv[1])) return 0;
+    }
+    
     cputest_fakepowerup();
     cputest_debugPrint();
 
@@ -154,7 +165,7 @@ int main(void){
 
         }
 
-        if (cpu.PC == breakpoint || singlestep)
+        if (cpu.PC == breakpoint || singlestep )
         {
             cputest_debugPrint();
             

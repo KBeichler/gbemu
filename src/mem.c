@@ -197,7 +197,7 @@ uint8_t mem_read(uint16_t adr)
 
 
         case 0xFF80 ... 0xFFFE:  // high Ram
-            return mem.hRam[adr & 0xFF];
+            return mem.hRam[adr - 0xFF80];
             break;
 
 
@@ -271,7 +271,7 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
                     break;  
                 case 0xFF05:
                     mem.TIMA = val; // set TIMA and reset Helper
-                    //cpu._TIMAhelper = 0;
+                    cpu._TIMAhelper = 0;
                     break;
                 case 0xFF07:
                     mem.TAC = val;  // set TIMA prescaler
@@ -288,13 +288,11 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
                 
 
             }
-
-            
             break;
 
-
         case 0xFF80 ... 0xFFFE:  // HIGH Ram
-            mem.hRam[ adr & 0xFF ] = val;
+
+            mem.hRam[ adr-0xFF80 ] = val;
             break;
 
 

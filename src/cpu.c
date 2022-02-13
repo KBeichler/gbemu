@@ -51,11 +51,14 @@ void cpu_tick()
 {
 
     // check interrupts
-    if (cpu.irq_enable == 1)
+
+    for (uint8_t i = 0; i < 5 ; i++)
     {
-        for (uint8_t i = 0; i < 5 && cpu.irq_enable; i++)
+        if ( ( mem.IE & (1 << i)) && ( mem.IF & (1 << i)) )
         {
-            if ( ( mem.IE & (1 << i)) && ( mem.IF & (1 << i)) )
+            cpu.halt = 0;
+
+            if ( cpu.irq_enable == 1)
             {
                 PUSH(REG(PC));
                 REG(PC) = IRQ_TABLE[i];
@@ -64,12 +67,12 @@ void cpu_tick()
                 DISABLE_IRQ;
             }
         }
-
-
     }
 
 
+
     uint8_t code = mem_read(REG(PC)++);
+    if (cpu.halt != 0) REG(PC)--;
     // if current opcode is not a prefixed opcode
     if (cpu.prefixCode == 0)
     {
@@ -104,7 +107,7 @@ void cpu_tick()
             case	0x16:	{ LD_R_n(REG(D), mem_read(REG(PC++)));  		}; break;
             case	0x17:	{ RL(REG(A)); FLAG(Z) = 0;                      }; break;
             case	0x18:	{ JMP_n(1);                         		    }; break;
-            case	0x19:	{ ADD_RR(REG(DE));					            }; break;
+            case	0x19:	{ ADD_RR( REG(DE) );					            }; break;
             case	0x1A:	{ LD_R_n(REG(A), mem_read(REG(DE)));			}; break;
             case	0x1B:	{ DEC_RR(REG(DE));				                }; break;
             case	0x1C:	{ INC_R(REG(E));	 							}; break;
@@ -122,10 +125,10 @@ void cpu_tick()
 
             // DAA
             case	0x27:	{ //change Register A from dec to BCD, check on flags to set correctly!
-                                                                            }; break;
+                                DAA();                                      }; break;
 
             case	0x28:	{ JMP_n( FLAG(Z));                              }; break;
-            case	0x29:	{ ADD_RR(REG(HL));					            }; break;
+            case	0x29:	{ ADD_RR( REG(HL) );					            }; break;
             case	0x2A:	{ LD_R_n(REG(A), mem_read(REG(HL++)));			}; break;
             case	0x2B:	{ DEC_RR(REG(HL));				                }; break;
             case	0x2C:	{ INC_R(REG(L));	 							}; break;
@@ -133,7 +136,7 @@ void cpu_tick()
             case	0x2E:	{ LD_R_n(REG(L), mem_read(REG(PC++)));			}; break;
             case	0x2F:	{ FLAG(N) = FLAG(HC) = 1; REG(A) ^= 0xFF;	    }; break;
             case	0x30:	{ JMP_n( FLAG(CY) == 0);                        }; break;
-            case	0x31:	{ LD_RR_D16(REG(SP));					        }; break;
+            case	0x31:	{ LD_RR_D16( REG(SP) );					        }; break;
             case	0x32:	{ LD_MEM_n( REG(HL--), REG(A) );			    }; break;
             case	0x33:	{ INC_RR(REG(SP));								}; break;
             case	0x34:	{ INC_HL;                                       }; break;
@@ -204,7 +207,7 @@ void cpu_tick()
             case	0x73:	{ LD_MEM_n( REG(HL), REG(E) );	                }; break;
             case	0x74:	{ LD_MEM_n( REG(HL), REG(H) );	                }; break;
             case	0x75:	{ LD_MEM_n( REG(HL), REG(L) );	                }; break;
-            case	0x76:	{   /* TODO HALT*/                              }; break; // HALT
+            case	0x76:	{ cpu.halt = 1;                                 }; break; // HALT
             case	0x77:	{ LD_MEM_n(REG(HL) , REG(A)  );			        }; break;
             case	0x78:	{ LD_R_n(REG(A) , REG(B)  );				    }; break;
             case	0x79:	{ LD_R_n(REG(A) , REG(C)  );				    }; break;
@@ -296,7 +299,7 @@ void cpu_tick()
             case	0xCB:	{ cpu.prefixCode = 1;                           }; break;
             case	0xCC:	{ CALL( FLAG(Z) );				                }; break;
             case	0xCD:	{ CALL(1);				                        }; break;
-            case	0xCE:	{ ADC_R(mem_read(REG(PC++)));				    }; break;
+            case	0xCE:	{ ADC_R( mem_read(REG(PC++)) );				    }; break;
             case	0xCF:	{ RST(0x08);			                        }; break;
             case	0xD0:	{ RET( FLAG(CY) == 0)	            			}; break;
             case	0xD1:	{ POP(REG(DE));				                    }; break;
@@ -304,7 +307,7 @@ void cpu_tick()
             case	0xD3:	{               			                    }; break; // INVALID
             case	0xD4:	{ CALL( FLAG(CY) == 0 )	;       			    }; break;
             case	0xD5:	{ PUSH(REG(DE));				                }; break;
-            case	0xD6:	{ SUB_R(mem_read(REG(PC++)));				    }; break;
+            case	0xD6:	{ SUB_R( mem_read(REG(PC++))) ;				    }; break;
             case	0xD7:	{ RST(0x10);				                    }; break;
             case	0xD8:	{ RET( FLAG(CY) );         				        }; break;
             case	0xD9:	{ RET(1); ENABLE_IRQ;				            }; break;
@@ -312,9 +315,9 @@ void cpu_tick()
             case	0xDB:	{               				                }; break; // INVALID
             case	0xDC:	{ CALL( FLAG(CY) );			                    }; break;
             case	0xDD:	{               				                }; break; // INVALID
-            case	0xDE:	{ SBC_R(mem_read(REG(PC++)));				    }; break;
+            case	0xDE:	{ SBC_R( mem_read(REG(PC++)) );				    }; break;
             case	0xDF:	{ RST(0x18);				                    }; break;
-            case	0xE0:	{ LD_MEM_n( 0xFF00 + mem_read(REG(PC++)), REG(A));}; break;
+            case	0xE0:	{ LD_MEM_n( 0xFF00 | mem_read(REG(PC)++), REG(A));}; break;
             case	0xE1:	{ POP(REG(HL));					                }; break;
             case	0xE2:	{ LD_MEM_n( (0xFF00 + REG(C)) , REG(A));		}; break;
             case	0xE3:	{             				                    }; break; // INVALID
@@ -322,7 +325,7 @@ void cpu_tick()
             case	0xE5:	{ PUSH(REG(HL));			                    }; break;
             case	0xE6:	{ AND_R(mem_read(REG(PC++))) ;	                }; break;
             case	0xE7:	{ RST(0x20)				                        }; break;
-            case	0xE8:	{ ADD_SP; 			                            }; break;
+            case	0xE8:	{ ADD_SP;                                       }; break;
             case	0xE9:	{ REG(PC) = REG(HL);				            }; break;
             case	0xEA:	{ uint16_t adr = mem_read(REG(PC++));
                               adr |= mem_read(REG(PC++)) << 8;
@@ -340,8 +343,8 @@ void cpu_tick()
             case	0xF5:	{ PUSH(REG(AF));			                    }; break;
             case	0xF6:	{ OR_R(mem_read(REG(PC++)));			                }; break;
             case	0xF7:	{ RST(0x30)				                        }; break;
-            case	0xF8:	{ LDHL;                                         }; break;
-            case	0xF9:	{ LD_R_n( REG(SP), REG(HL) );				        }; break;
+            case	0xF8:	{  LDHL;                                        }; break;
+            case	0xF9:	{ LD_R_n( REG(SP), REG(HL) );				    }; break;
             case	0xFA:	{ uint16_t adr = mem_read(REG(PC++));
                             adr |= mem_read(REG(PC++)) << 8;
                             REG(A) = mem_read(adr);                      }; break;
@@ -404,7 +407,7 @@ void cpu_tick()
             case	0x1E:	{ uint8_t n = mem_read(REG(HL));
                                 RR(n);
                                 mem_write(REG(HL), n); 						}; break;
-            case	0x1F:	{ SLA(REG(A));								}; break;
+            case	0x1F:	{ RR(REG(A));								}; break;
             case	0x20:	{ SLA(REG(B));								}; break;
             case	0x21:	{ SLA(REG(C));								}; break;
             case	0x22:	{ SLA(REG(D));								}; break;
@@ -414,7 +417,7 @@ void cpu_tick()
             case	0x26:	{ uint8_t n = mem_read(REG(HL));
                                 SLA(n);
                                 mem_write(REG(HL), n); 						}; break;
-            case	0x27:	{ SRA(REG(A));								}; break;
+            case	0x27:	{ SLA(REG(A));								}; break;
             case	0x28:	{ SRA(REG(B));								}; break;
             case	0x29:	{ SRA(REG(C));								}; break;
             case	0x2A:	{ SRA(REG(D));								}; break;
@@ -751,6 +754,37 @@ void cpu_updateTimer()
 }
 
 
+
+
+void DAA(void)
+{
+    uint8_t carry = FLAG(CY);
+    FLAG(CY) = 0;
+    
+    if (FLAG(N) == 0) 
+    { 
+        if (carry || REG(A) > 0x99) 
+        {
+            REG(A) += 0x60;
+            FLAG(CY)  = 1;
+        }
+        if (FLAG(HC) || (REG(A) & 0x0f) > 0x09) 
+            REG(A) += 0x6;
+    }
+    else 
+    {
+        if (carry) 
+        {
+            REG(A) -= 0x60;
+            FLAG(CY)  = 1;
+        }
+        if (FLAG(HC)) 
+            REG(A) -= 0x6;
+    }
+
+    FLAG(HC) = 0;
+    FLAG(Z) = (REG(A) == 0);
+}
 
 
 
