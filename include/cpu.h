@@ -75,10 +75,10 @@ int8_t s;
 
 // JMP AND CALL 
 // F = Condition to executssssss
-#define JMP_n(F)       i = mem_read(REG(PC++)); if (F) { REG(PC) += (int8_t) i; cpu.currentCycleLength  += 3;} 
+#define JMP_n(F)       i = mem_read(REG(PC++)); if (F) { REG(PC) += (int8_t) i; cpu.currentCycleLength  += 1;} 
 #define JMP_nn(F)      n = mem_read(REG(PC++)); n |= (mem_read(REG(PC++)) << 8); if (F) { REG(PC) = n; cpu.currentCycleLength  += 1; } ;
 #define CALL(F)        n = mem_read(REG(PC++)); n |= (mem_read(REG(PC++)) << 8); if (F) { PUSH(REG(PC)); REG(PC) = n; cpu.currentCycleLength  += 3; }
-#define RET(F)         if (F) { POP(REG(PC)); cpu.currentCycleLength += 4; }
+#define RET(F)         if (F) { POP(REG(PC)); cpu.currentCycleLength += 3; }
 #define RST(I)         PUSH( REG(PC) );  REG(PC) = 0x0000 + I;           
 
 // SHIFT OPERATIONS
@@ -186,6 +186,7 @@ typedef struct cpu_t
     // Helper variables
     uint16_t _DIVhelper;
     uint16_t _TIMAhelper;
+    uint16_t _TIMAdivider;
 
 }cpu_t;
 
@@ -230,6 +231,8 @@ void cpu_updateTimer(uint8_t currentClock);
 */
 void DAA(void);
 
+
+void cpu_setTAC(uint8_t val);
 
 
 

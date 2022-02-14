@@ -200,8 +200,15 @@ uint8_t mem_read(uint16_t adr)
         case 0xFEA0 ... 0xFEFF:  // unusable
             break;
         case 0xFF00 ... 0xFF7F:  //io
-            return mem.io[adr & 0xFF];
-            break;
+            switch (adr)
+                {
+                    case 0xFF05: // TIMA
+                        return mem.TIMA; 
+                        break;
+                    default:
+                        return mem.io[adr & 0xFF];
+                        break;
+                }        
 
 
         case 0xFF80 ... 0xFFFE:  // high Ram
@@ -273,15 +280,13 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
             {
                 case 0xFF04: // DIV is 0 on write
                     mem.DIV = 0;
-                    cpu._DIVhelper = 0;
+                    cpu._DIVhelper = cpu._TIMAhelper = 0;
                     break;  
                 case 0xFF05:
                     mem.TIMA = val; // set TIMA and reset Helper
-                    cpu._TIMAhelper = 0;
                     break;
                 case 0xFF07:
-                    mem.TAC = val;  // set TIMA prescaler
-                    cpu._TIMAhelper = 0;
+                    cpu_setTAC(val);  // set TIMA prescaler/ synch timers
                     break;
                 case 0xFF46: // set DMA_Active Flag on write to 0xFF46;
                     mem.DMA_active = 1; 

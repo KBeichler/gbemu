@@ -11,11 +11,11 @@ __     __         _       _     _
 cpu_t cpu; // CPU STRUCT
 extern mem_t mem; // global mem struct
 // Timing Table
-uint8_t OpCodeTimingTable[0x100] = {
+uint8_t OpCodeTimingTable[0x100] = {    
 1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1,
-1, 3, 2, 2, 1, 1, 2, 1, 0, 2, 2, 2, 1, 1, 2, 1,
+1, 3, 2, 2, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1,
 2, 3, 2, 2, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1,
-2, 3, 2, 2, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 2, 1,
+2, 3, 2, 2, 3, 3, 3, 1, 2, 2, 2, 2, 1, 1, 2, 1,
 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
@@ -24,10 +24,30 @@ uint8_t OpCodeTimingTable[0x100] = {
 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
-2, 3, 3, 4, 3, 4, 2, 4, 2, 1, 3, 1, 3, 6, 2, 4,
+2, 3, 3, 3, 3, 4, 2, 4, 2, 1, 3, 1, 3, 3, 2, 4,
 2, 3, 3, 0, 3, 4, 2, 4, 2, 1, 3, 0, 3, 0, 2, 4,
 3, 3, 2, 0, 0, 4, 2, 4, 4, 1, 4, 0, 0, 0, 2, 4,
 3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4,
+};
+
+uint8_t preOpCodeTimingTable[0x100] = {    
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 
+1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 
+1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 
+1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 
+
 };
 // IRQ vector table
 uint8_t IRQ_TABLE[5] = { 0x40, 0x48, 0x50, 0x58, 0x60};
@@ -37,7 +57,8 @@ uint8_t IRQ_TABLE[5] = { 0x40, 0x48, 0x50, 0x58, 0x60};
 
 
 // inits cpu and status variables
-void cpu_init(){
+void cpu_init()
+{
     memset((void *) &cpu, 0, sizeof(cpu_t));
     cpu.prefixCode = 0;    
     cpu.irq_enable = 1;
@@ -69,6 +90,7 @@ void cpu_tick(void)
             }
         }
     }
+
 
 
     // get next opcode if not halted
@@ -366,7 +388,7 @@ void cpu_tick(void)
     else
     {
         // 0x-7 and 0x-E ecces memory and take 4 cylces, everything else takes 2 cacles
-        cpu.currentCycleLength = (code % 7 == 0 && code != 0) ? 4 : 2;
+        cpu.currentCycleLength = preOpCodeTimingTable[code];
         cpu.prefixCode = 0;
         switch (code)
         {
@@ -704,10 +726,59 @@ void cpu_tick(void)
 
 }
 
+void cpu_setTAC(uint8_t val)
+{
+    // get divider
+    switch (val & 0x3)
+    {
+        case 0:
+            cpu._TIMAdivider = 1024;
+            break;
+        case 1:
+            cpu._TIMAdivider = 16;
+            break;
+        case 2:
+            cpu._TIMAdivider = 64;
+            break;
+        case 3:
+            cpu._TIMAdivider = 256;
+            break;
+    }
+    // get counter from _DIVhelper to synchronise counters
 
+    cpu._TIMAhelper = cpu._DIVhelper % cpu._TIMAdivider;    
+    mem.TAC = val;
+
+}
 
 void cpu_updateTimer(uint8_t currentCycle)
 {
+    cpu._DIVhelper += currentCycle * 4;  // get current clock
+    mem.DIV = ( cpu._DIVhelper & 0xFF00) >> 8; 
+    
+    if (mem.TAC & ( 1<<2 ) ) // if counter is enabled
+    {     
+        cpu._TIMAhelper += currentCycle * 4;
+        uint8_t preOverflow = 0;
+
+        while (cpu._TIMAhelper > cpu._TIMAdivider)
+        {
+            preOverflow = (mem.TIMA == 0xFF); // check for upcoming overflow
+            mem.TIMA++;
+            cpu._TIMAhelper -= cpu._TIMAdivider;
+            if (preOverflow && mem.TIMA == 0x00)
+            {
+                mem.TIMA = mem.TMA;
+                preOverflow = 0;
+                TRIGGER_IRQ(IRQ_TIMER);         // trigger IRW
+            }
+
+        }
+        
+
+    }
+
+    /*
     cpu._DIVhelper += currentCycle;
     // TODO in double speed mode
     uint16_t DIVdivider = 64;
@@ -716,7 +787,7 @@ void cpu_updateTimer(uint8_t currentCycle)
         cpu._DIVhelper -= DIVdivider;
         mem.DIV++;
     }
-
+    
     if (mem.TAC & ( 1<<2 )) // if counter is enabled
     {
         cpu._TIMAhelper += currentCycle;
@@ -738,21 +809,22 @@ void cpu_updateTimer(uint8_t currentCycle)
                 break;
         }
 
-        while (cpu._TIMAhelper > TIMAdivider)
+        while (cpu._TIMAhelper >= TIMAdivider)
         {
-            preOverflow = mem.TIMA == 0xFF ? 1 : 0; // check for upcoming overflow
+            preOverflow = mem.TIMA == 0xFF; // check for upcoming overflow
             mem.TIMA++;
             cpu._TIMAhelper -= TIMAdivider;
-        }
+            if (preOverflow && mem.TIMA == 0x00)
+            {
+                mem.TIMA = mem.TMA;
+                preOverflow = 0;
+                TRIGGER_IRQ(IRQ_TIMER);         // trigger IRW
+            }
 
-        if (preOverflow && mem.TIMA != 0xFF) // overflow happened
-        {
-            mem.TIMA = mem.TMA;
-            preOverflow = 0;
-            TRIGGER_IRQ(IRQ_TIMER);         // trigger IRW
         }
+        
 
-    }
+    }*/
 
 
 }

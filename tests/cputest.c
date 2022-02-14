@@ -22,7 +22,7 @@ void cputest_debugPrint(){
 
     printf("------------------------------------------------------------\n");
     printf("OpCode: 0x%02X   %s\t+1: 0x%02X\t+2: 0x%02X\n",mem_read(cpu.PC), currentcode, mem_read(cpu.PC+1), mem_read(cpu.PC+2));
-    printf("CPU-Clock: %13d\tPPU-clock: %13d\n",cpu.clock, ppu.clock);
+    printf("CPU-Clock: %13d\tPPU-clock: %13d\t last cycle %d\n",cpu.clock, ppu.clock, cpu.currentCycleLength);
     printf("Registers:\nAF: 0x%02X\tBC: 0x%02X\tDE: 0x%02X\t HL: 0x%02X\nPC: 0x%02X\tSP: 0x%02X", cpu.AF, cpu.BC, cpu.DE, cpu.HL,  cpu.PC, cpu.SP);
     printf("\t FLAGS:   Z:%d N:%d HC:%d C:%d\n", !!(cpu.F & 1<<7), !!(cpu.F & 1<<6), !!(cpu.F & 1<<5), !!(cpu.F & 1<<4) );
     printf("Memory:\n@SP: 0x%02X\t+1: 0x%02X\t -1 0x%02X\t-2 0x%02X", mem_read(cpu.SP),mem_read(cpu.SP+1),mem_read(cpu.SP-1), mem_read(cpu.SP-2));
@@ -30,7 +30,7 @@ void cputest_debugPrint(){
     printf("IO Registers:\t\t IRQ_Enable: %x\n", cpu.irq_enable); 
     printf("IF: 0x%02X\tIE: 0x%02X\tLCDC: 0x%02X\tSTAT: 0x%02X\n", mem.IF, mem.IE, mem.LCDC, mem.STAT);
     printf("SCY: 0x%X\t SCX: 0x%X\tLY: 0x%X\n", mem.SCY, mem.SCX, mem.LY);
-    printf("DIV: 0x%X\t TIMA: 0x%X\tTMA: 0x%X\tTAC: 0%X\n", mem.DIV, mem.TIMA, mem.TMA, mem.TAC);
+    printf("DIV: 0x%X\t TIMA: 0x%X\tTMA: 0x%X\thelper %d\tdivider: 0%d\n", mem.DIV, mem.TIMA, mem.TMA, cpu._TIMAhelper, cpu._TIMAdivider);
     //printf("hRam: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", mem.hRam[0], mem.hRam[1], mem.hRam[2], mem.hRam[3], mem.hRam[4], mem.hRam[5]);
     printf("------------------------------------------------------------\n");
 
@@ -50,6 +50,7 @@ void cputest_fakepowerup()
     cpu.DE = 0x00D8;
     cpu.HL = 0x014D;
     cpu.SP = 0xFFFE;
+
     mem_write(0xFF05, 0x00)   ; 
     mem_write(0xFF06, 0x00)   ; 
     mem_write(0xFF07, 0x00)   ; 
@@ -82,11 +83,12 @@ void cputest_fakepowerup()
     mem_write(0xFF4B, 0x00)   ; 
     mem_write(0xFFFF, 0x00)   ; 
     mem.IF = 0xE1;
-
+    mem.DIV = 0x1E;
+    cpu._DIVhelper = 0x1e00;
 }
 // status: we run ok at leas until Px 0x2d2 
  
-
+ 
 
 int main (int argc, char* argv[])
 {
