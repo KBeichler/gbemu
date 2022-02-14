@@ -1,5 +1,16 @@
 #include <cpu.h>
 
+/*
+__     __         _       _     _
+\ \   / /_ _ _ __(_) __ _| |__ | | ___  ___
+ \ \ / / _` | '__| |/ _` | '_ \| |/ _ \/ __|
+  \ V / (_| | |  | | (_| | |_) | |  __/\__ \
+   \_/ \__,_|_|  |_|\__,_|_.__/|_|\___||___/
+ */
+
+cpu_t cpu; // CPU STRUCT
+extern mem_t mem; // global mem struct
+// Timing Table
 uint8_t OpCodeTimingTable[0x100] = {
 1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1,
 1, 3, 2, 2, 1, 1, 2, 1, 0, 2, 2, 2, 1, 1, 2, 1,
@@ -18,21 +29,18 @@ uint8_t OpCodeTimingTable[0x100] = {
 3, 3, 2, 0, 0, 4, 2, 4, 4, 1, 4, 0, 0, 0, 2, 4,
 3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4,
 };
+// IRQ vector table
 uint8_t IRQ_TABLE[5] = { 0x40, 0x48, 0x50, 0x58, 0x60};
-cpu_t cpu;
-
-
-extern mem_t mem;
 
 
 
+
+
+// inits cpu and status variables
 void cpu_init(){
     memset((void *) &cpu, 0, sizeof(cpu_t));
     cpu.prefixCode = 0;    
     cpu.irq_enable = 1;
-
-
-
 }
 
 
@@ -40,20 +48,12 @@ void cpu_init(){
 
 
 
-
-
-
-
-
-
-
-void cpu_tick()
+void cpu_tick(void)
 {
 
     // check interrupts
-
     for (uint8_t i = 0; i < 5 ; i++)
-    {
+    {   // loop through all interupts, call one if 
         if ( ( mem.IE & (1 << i)) && ( mem.IF & (1 << i)) )
         {
             cpu.halt = 0;
@@ -65,18 +65,20 @@ void cpu_tick()
                 //clear flag
                 mem.IF &= ~( 1 << i );
                 DISABLE_IRQ;
+                break;
             }
         }
     }
 
 
-
+    // get next opcode if not halted
     uint8_t code = mem_read(REG(PC)++);
     if (cpu.halt != 0) REG(PC)--;
-    // if current opcode is not a prefixed opcode
+
+    // if current opcode is not a prefixed opcode 
     if (cpu.prefixCode == 0)
     {
-        cpu.currentCycleLength = OpCodeTimingTable[code];
+        cpu.currentCycleLength = OpCodeTimingTable[code];   // update currentCycle time 
         switch (code)
         {
             case    0x00:   {                                               }; break;
@@ -360,10 +362,10 @@ void cpu_tick()
         // end if SWITCH
     }
 
-    // it is is a prefixed opcode
+    // it is is a prefixed opcode 
     else
     {
-        // 0x-7 and 0x-E ecces memory and take 4 cylces
+        // 0x-7 and 0x-E ecces memory and take 4 cylces, everything else takes 2 cacles
         cpu.currentCycleLength = (code % 7 == 0 && code != 0) ? 4 : 2;
         cpu.prefixCode = 0;
         switch (code)
@@ -693,22 +695,23 @@ void cpu_tick()
 
     }
 
+    // update main cpu clock
     cpu.clock += cpu.currentCycleLength;
     
-
-    cpu_updateTimer();
+    // update timers
+    cpu_updateTimer( cpu.currentCycleLength );
 
 
 }
 
 
 
-void cpu_updateTimer()
+void cpu_updateTimer(uint8_t currentCycle)
 {
-    cpu._DIVhelper += cpu.currentCycleLength;
+    cpu._DIVhelper += currentCycle;
     // TODO in double speed mode
     uint16_t DIVdivider = 64;
-    if ( cpu._DIVhelper >= DIVdivider)
+    while ( cpu._DIVhelper >= DIVdivider )
     {
         cpu._DIVhelper -= DIVdivider;
         mem.DIV++;
@@ -716,8 +719,8 @@ void cpu_updateTimer()
 
     if (mem.TAC & ( 1<<2 )) // if counter is enabled
     {
-        cpu._TIMAhelper += cpu.currentCycleLength;
-        uint8_t preOverflow = mem.TIMA == 0xFF ? 1 : 0;
+        cpu._TIMAhelper += currentCycle;
+        uint8_t preOverflow = 0;
         uint16_t TIMAdivider; // get divider. in this case its already divides by 4 because the program only count cpu steps, not the real clock
         switch (mem.TAC & 0x3)
         {
@@ -735,17 +738,18 @@ void cpu_updateTimer()
                 break;
         }
 
-        if (cpu._TIMAhelper >= TIMAdivider)
+        while (cpu._TIMAhelper > TIMAdivider)
         {
+            preOverflow = mem.TIMA == 0xFF ? 1 : 0; // check for upcoming overflow
             mem.TIMA++;
             cpu._TIMAhelper -= TIMAdivider;
         }
 
-        if (preOverflow && mem.TIMA == 0x00) // overflow happened
+        if (preOverflow && mem.TIMA != 0xFF) // overflow happened
         {
             mem.TIMA = mem.TMA;
             preOverflow = 0;
-            TRIGGER_IRQ(IRQ_TIMER);
+            TRIGGER_IRQ(IRQ_TIMER);         // trigger IRW
         }
 
     }
@@ -754,35 +758,34 @@ void cpu_updateTimer()
 }
 
 
-
-
+// DAA Implementation, slightly stolen of reddit
 void DAA(void)
 {
     uint8_t carry = FLAG(CY);
     FLAG(CY) = 0;
-    
-    if (FLAG(N) == 0) 
+
+    if (FLAG(N) == 0) // check if last instruction was add = 0 or sub = 1
     { 
-        if (carry || REG(A) > 0x99) 
+        if ( carry || REG(A) > 0x99 ) //when carry over add 0x60, set carry flag
         {
             REG(A) += 0x60;
             FLAG(CY)  = 1;
         }
-        if (FLAG(HC) || (REG(A) & 0x0f) > 0x09) 
+        if ( FLAG(HC) || (REG(A) & 0x0f) > 0x09 ) //when half carry over, add 0x06
             REG(A) += 0x6;
     }
     else 
     {
-        if (carry) 
+        if ( carry ) // on carry, sub 0x60
         {
             REG(A) -= 0x60;
             FLAG(CY)  = 1;
         }
-        if (FLAG(HC)) 
+        if ( FLAG(HC) ) // on half carry, sub 0x06
             REG(A) -= 0x6;
     }
 
-    FLAG(HC) = 0;
+    FLAG(HC) = 0; //reset HC and set Z
     FLAG(Z) = (REG(A) == 0);
 }
 

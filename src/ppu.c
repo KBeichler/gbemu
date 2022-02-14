@@ -6,21 +6,28 @@
 
 #define INC_LY mem.LY++;
 
+/* 
+__     __         _       _     _
+\ \   / /_ _ _ __(_) __ _| |__ | | ___  ___
+ \ \ / / _` | '__| |/ _` | '_ \| |/ _ \/ __|
+  \ V / (_| | |  | | (_| | |_) | |  __/\__ \
+   \_/ \__,_|_|  |_|\__,_|_.__/|_|\___||___/
+ */
 
+// global variables
 ppu_t ppu;
 uint8_t framebuffer[SCREEN_WIDTH][SCREEN_HEIGHT] ;
 extern mem_t mem;
 extern cpu_t cpu;
 
 
-
+// faek pallete for the moement
 uint16_t mono_pallete[4] = {0x7FFF, 0x7777, 0x2222, 0x000};
 
 
 
 
 void ppu_init(){
-
 
     memset(framebuffer, 0, SCREEN_WIDTH*SCREEN_HEIGHT);
     ppu.currentX = 0;
@@ -34,18 +41,14 @@ void ppu_init(){
 
 
 void ppu_tick(){
-    uint32_t currentCycle = ppu.clock++ % 115;
+    uint32_t currentCycle = ppu.clock++ % 115; //catch ip to the cpu cycle. modulo 115. every line is 115 "ticks" wide (OAM search -> pioxel transfer -> hblank)
     //ppu.clock++;
-
-
-
     switch (ppu.state)
     {
         case OAM_SEARCH:
 
             if ( currentCycle == 20)
             {
-
                 // get sprite data for line
                 ppu.spriteSize = mem.LCDC & ( 1<<2 ) ? 16 : 8;
                 for (uint8_t i = 0; i < 40; i++)
@@ -61,7 +64,7 @@ void ppu_tick(){
                     ppu.oam_sprites[i].palette = atr & (1<<4);
                 }
 
-                ppu.objEnable = !!(mem.LCDC & (1<<1));
+                ppu.objEnable = !!(mem.LCDC & (1<<1)); // get object enable flag
                 ppu.state = PIXEL_TRANSFER;
                 
                 mem.STAT =  (mem.STAT & 0xFC) + ppu.state;
@@ -80,8 +83,6 @@ void ppu_tick(){
                 ppu.state = HBLANK;
                 INC_LY;
                 
-                
-
                 
                 mem.STAT =  (mem.STAT & 0xFC) + ppu.state;
                 //mem_write(STAT,  ( mem_read(STAT) & (0xFC | ppu.state)) ); //TODO CHECK
@@ -173,7 +174,7 @@ void ppu_tick(){
 }
 
 
-//
+// draw line
 
 void ppu_drawLine(){
 
@@ -210,14 +211,11 @@ void ppu_drawLine(){
         // read tile num from bg map
         currentMapAdr = (((mem.SCY + mem.LY) / 8) % 32) * 32 + (((mem.SCX + j) / 8) % 32);
         if (singedmap == 1)
-        {
             currentTileAdr = ((int8_t) mem_read(currentMapAdr + mapBaseAdr)* 4) + tileBaseAdr;
-        }
-        
+       
         else
-        {
             currentTileAdr =  (mem_read(currentMapAdr + mapBaseAdr) << 4) + tileBaseAdr;
-        }
+
         
         // read tile bytes (2 tiles per line) for current LY line
         tileByte1 = mem_read( currentTileAdr + ( (mem.LY % 8)*2)    );

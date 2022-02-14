@@ -1,7 +1,7 @@
 #include <gb.h>
 #include <mem.h>
 
-
+// Boot ROM of a standard gameboy, used for startup
 static uint8_t BOOT_ROM[0x100] = 
 {
 	0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
@@ -25,24 +25,30 @@ static uint8_t BOOT_ROM[0x100] =
 
 
 
+/*
+__     __         _       _     _
+\ \   / /_ _ _ __(_) __ _| |__ | | ___  ___
+ \ \ / / _` | '__| |/ _` | '_ \| |/ _ \/ __|
+  \ V / (_| | |  | | (_| | |_) | |  __/\__ \
+   \_/ \__,_|_|  |_|\__,_|_.__/|_|\___||___/
+ */
+extern cpu_t cpu;   // global cpu struct
+mem_t mem;          //global mem struct
 
-extern cpu_t cpu;
-
-mem_t mem;
-
-
+// setRombank function pointer. Different cartirdges need different handling, thats why i work via a function pointer
+// gets set on loading the ROM file
 void (*_setRomBank) (uint16_t, uint8_t);
 
 
 
 
-void mem_init()
+void mem_init(void)
 {
-    memset((void *) &mem, 0, sizeof(mem_t));
-    mem.DMA_active = 0;
-    
+    // init mem with 0
+    memset((void *) &mem, 0, sizeof(mem_t)); 
 
-    memcpy(mem.bootRom, BOOT_ROM, sizeof(BOOT_ROM));
+    // copy bootrom to struct
+    memcpy(mem.bootRom, BOOT_ROM, sizeof(BOOT_ROM)); 
 
     // Powerup seuqence as in Pandocs
     mem_write( 0xFF05 ,0x00 ); 
@@ -77,9 +83,9 @@ void mem_init()
     mem_write( 0xFF4B ,0x00 ); 
     mem_write( 0xFFFF ,0x00 ); 
 
-
-
+    mem.DMA_active = 0;
 }
+
 
 uint8_t mem_loadRom(char* path)
 {
@@ -110,7 +116,7 @@ uint8_t mem_loadRom(char* path)
     // TODO add MBC table to set function poitner to memory bank functions
     _setRomBank = &mem_setRomBankMBC1;
     // Allocate external Ram if any
-    // TODO load eram file .sav
+    // TODO load external ram file .sav
     if (mem.loadedRom[0x149] < 0x06 && mem.loadedRom[0x149] > 1)
     {
         mem.cartRamBankCount = 1 << (mem.loadedRom[0x149] -1);
@@ -123,6 +129,7 @@ uint8_t mem_loadRom(char* path)
         mem.cartRamBankCount = 0;
         mem.eRam = NULL;
     }
+
     #ifdef DEBUG
     printf("Succesfully loaded ROM '%s'\nloaded size %d bytes\n", path, mem.loadedRomLength );
     printf("External Ram detected: %s  - RAM Size 0x%X\n\n", (mem.cartRamBankCount != 0 ? "YES" : "NO"), 0x2000 * mem.cartRamBankCount);
@@ -132,12 +139,13 @@ uint8_t mem_loadRom(char* path)
 
 }
 
-void mem_close()
+void mem_close(void)
 {
     free(mem.loadedRom);
     free(mem.eRam);
 }
 
+// memory read function
 uint8_t mem_read(uint16_t adr)
 {
     switch (adr)
@@ -213,11 +221,9 @@ uint8_t mem_read(uint16_t adr)
     return 0;
 }
 
-
+// memory write function
 uint8_t mem_write(uint16_t adr, uint8_t val)
 {
-
-
 
     switch (adr)
     {
@@ -308,7 +314,9 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
     return 0;
 }
 
-void mem_doDMA()
+// DMA handler -> happens instantly, timing probalb probalby needs some tuning
+// copys 159 bytes into oam Ram, specified by DMA register (specify upper 2 bytes of address. for example DMA = 0xEA -> adress start = 0xEA00) 
+void mem_doDMA(void)
 {
     uint16_t sourceAdr = mem.DMA << 8  | 0x0000; 
     uint16_t targetAdr = 0xFE00;
@@ -320,6 +328,7 @@ void mem_doDMA()
     mem.DMA_active = 0;
 
 }
+
 // 5bit 0x01 - 0x1F - highe rbits discarded
 // if val is higher then max number of banks- max bankis selected
 // if more than 16 banks reg 0x4000-7FFF supplies 2 moire upper bits
@@ -327,6 +336,7 @@ void mem_doDMA()
 // cannot be 0 -> 1
 // if RomBank & 0xF = 0-> rombank+1
 
+// MBC1 (cartridge) rom bank switcher
 void mem_setRomBankMBC1(uint16_t adr, uint8_t val){
 
 

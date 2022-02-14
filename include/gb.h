@@ -1,3 +1,10 @@
+/*  gh.h    gb-emu
+    global header files, pulls this whole shitshow together
+
+    global defintions are made here, idk what else.
+    lots of old stuff for the moment
+
+*/
 #ifndef GB
 #define GB
 #define DEBUG
@@ -65,7 +72,7 @@
 
 
 
-
+// fake powerup
 void gb_fakePowerup();
 
 

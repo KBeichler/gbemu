@@ -1,3 +1,6 @@
+/* dissass.h    gb-emu
+    holds strings for all opcodes for easier debugging
+ */
 #ifndef DISSASSEMBLER
 #define DISSASSEMBLER
 

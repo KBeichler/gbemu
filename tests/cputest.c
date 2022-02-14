@@ -1,3 +1,8 @@
+/*
+    Debugging helper program
+    its pretty shit
+    but it works kind of
+*/
 #include <gb.h>
 #include <dissass.h>
 
