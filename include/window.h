@@ -21,7 +21,7 @@ void window_init();
 void window_close();
 
 // draw current frambufer onto screen
-void window_drawFrame(uint16_t framebuffer[SCREEN_HEIGHT][SCREEN_WIDTH]);
+void window_drawFrame(uint32_t framebuffer[SCREEN_HEIGHT][SCREEN_WIDTH]);
 
 // gets user input
 void window_getIO(uint8_t * io);

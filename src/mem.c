@@ -289,6 +289,7 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
                     cpu_setTAC(val);  // set TIMA prescaler/ synch timers
                     break;
                 case 0xFF46: // set DMA_Active Flag on write to 0xFF46;
+                    mem.DMA = val;
                     mem.DMA_active = 1; 
                     break;
                 
@@ -319,11 +320,11 @@ uint8_t mem_write(uint16_t adr, uint8_t val)
     return 0;
 }
 
-// DMA handler -> happens instantly, timing probalb probalby needs some tuning
+// DMA handler -> happens instantly, timing probalby needs some tuning
 // copys 159 bytes into oam Ram, specified by DMA register (specify upper 2 bytes of address. for example DMA = 0xEA -> adress start = 0xEA00) 
 void mem_doDMA(void)
 {
-    uint16_t sourceAdr = mem.DMA << 8  | 0x0000; 
+    uint16_t sourceAdr = (mem.DMA << 8)  | 0x0000; 
     uint16_t targetAdr = 0xFE00;
 
     for (uint8_t i = 0x00; i <= 0x9F; i++)

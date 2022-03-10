@@ -1,11 +1,6 @@
 #include <gb.h>
 
 
-/*SDL_Window *mainWindow;
-SDL_Renderer * mainRenderer;
-SDL_Texture * mainTexture;
-void *pixels;
-int pitch;*/
 
 
 extern cpu_t cpu;
@@ -81,6 +76,7 @@ int main (int argc, char* argv[])
     //HELPERS
 
     uint8_t quit = 1;
+    uint8_t lastCycle = 0;
 
 
     // SDL Main Windows Init
@@ -88,8 +84,11 @@ int main (int argc, char* argv[])
 
     while (quit){
 
-        cpu_tick();
-        while (ppu.clock < (cpu.clock << 1) )
+        uint8_t lastCycle = cpu_tick();
+        // update timers
+        cpu_updateTimer( lastCycle );
+        lastCycle *= 2; 
+        while ( lastCycle-- )
         {
             ppu_tick();
         }
@@ -100,6 +99,13 @@ int main (int argc, char* argv[])
             mem.DMA_active = 0;
         }
 
+        // debug serial output        
+        if (mem_read(0xff02) == 0x81) {
+
+            char c = mem_read(0xff01);
+            printf("%c", c);
+            mem_write(0xff02,  0x0);
+        }
 
         if (ppu.newFrame)
         {
@@ -108,9 +114,10 @@ int main (int argc, char* argv[])
             // color from pallette for each pixel
             window_drawFrame(ppu.framebuffer);
 
-
+ 
         }
-
+        
+        
         window_getIO(&quit);
 
 

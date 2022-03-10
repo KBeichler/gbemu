@@ -51,7 +51,7 @@ typedef struct ppu_t{
 
     oam_sprite_t oam_sprites[40];   // sprite buffer
     uint8_t spriteSize;             // sprite size helper variable
-    uint16_t framebuffer[144][160]; 
+    uint32_t framebuffer[144][160]; 
 
 
     // info flags

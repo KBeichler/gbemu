@@ -16,20 +16,20 @@ __     __         _       _     _
 
 // global variables
 ppu_t ppu;
-uint8_t framebuffer[SCREEN_WIDTH][SCREEN_HEIGHT] ;
+//uint32_t framebuffer[SCREEN_WIDTH][SCREEN_HEIGHT] ;
 extern mem_t mem;
 extern cpu_t cpu;
 
 
 // faek pallete for the moement
-uint16_t mono_pallete[4] = {0x7FFF, 0x7777, 0x2222, 0x000};
+uint32_t mono_pallete[4] = {0x0, 0x666666, 0xb2b2b2, 0xffffff};
 
 
 
 
 void ppu_init(){
 
-    memset(framebuffer, 0, SCREEN_WIDTH*SCREEN_HEIGHT);
+    memset(ppu.framebuffer, 0, SCREEN_WIDTH*SCREEN_HEIGHT);
     ppu.currentX = 0;
     ppu.newFrame = 0;
 
@@ -54,9 +54,9 @@ void ppu_tick(){
                 for (uint8_t i = 0; i < 40; i++)
                 {
                     
-                    ppu.oam_sprites[i].y      = mem_read(0xFE00 + i*4   );
-                    ppu.oam_sprites[i].x      = mem_read(0xFE00 + i*4 +1);
-                    ppu.oam_sprites[i].tilenr = mem_read(0xFE00 + i*4 +2);
+                    ppu.oam_sprites[i].y       = mem_read(0xFE00 + i*4   );
+                    ppu.oam_sprites[i].x       = mem_read(0xFE00 + i*4 +1);
+                    ppu.oam_sprites[i].tilenr  = mem_read(0xFE00 + i*4 +2);
                     uint8_t atr                = mem_read(0xFE00 + i*4 +3);
                     ppu.oam_sprites[i].prio    = atr & (1<<7);
                     ppu.oam_sprites[i].y_flip  = atr & (1<<6);
@@ -186,6 +186,8 @@ void ppu_drawLine(){
     uint16_t mapBaseAdr;
     uint16_t currentTileAdr;
     uint16_t currentMapAdr;
+    uint8_t pixelVal;
+    uint8_t tileByte1, tileByte2;
 
     uint8_t singedmap = 0;
     if ( mem.LCDC & ( 1 << 4 ) )
@@ -202,7 +204,7 @@ void ppu_drawLine(){
     // BG MAp select start at  9800
     mapBaseAdr = mem.LCDC & ( 1 << 3) ? 0x9C00 : 0x9800;
 
-    uint8_t tileByte1, tileByte2;
+    
 
 
     
@@ -220,18 +222,66 @@ void ppu_drawLine(){
         // read tile bytes (2 tiles per line) for current LY line
         tileByte1 = mem_read( currentTileAdr + ( (mem.LY % 8)*2)    );
         tileByte2 = mem_read( currentTileAdr + ( (mem.LY % 8)*2) +1 );
+
         //set pixel
         // if mono gb mode
         uint8_t x = (( j + mem.SCX ) % 8); 
-        ppu.framebuffer[mem.LY][j] = mono_pallete[ ( ( tileByte1 >> (6-x) ) & 0x2 ) | ( (tileByte2 >> (7-x)) & 0x01) ];  
+        pixelVal = ( (( tileByte1 >> (7-x) ) & 0x1 ) << 1) | ( (tileByte2 >> (7-x)) & 0x01);
+        ppu.framebuffer[mem.LY][j] = mono_pallete[ pixelVal ];  
     }
 
 
-/*
-    //draw sprite
+
+    //draw sprite routine
+    // only check if objEnalbe ist set
+    if ( ppu.objEnable == 0) return;
+
+    // loop through all sprites
     
     uint8_t drawnSprites = 0;
-    uint8_t currentIndex = VMEM(LY);
+    for (uint8_t i = 0; i < 40; i++)
+    {
+        
+        // check if current Sprite is visible, gb only cares about y pos
+        if ( (ppu.oam_sprites[i].y + 16 - ppu.spriteSize) >= mem.LY && ppu.oam_sprites[i].y <= mem.LY)
+        {
+            
+            if ( ppu.oam_sprites[i].x == 0 || ppu.oam_sprites[i].x >= 168)
+            {
+                drawnSprites++;
+                continue;
+            }
+            
+            // get the address of this sprite
+            currentTileAdr = 0x8000 |  (ppu.oam_sprites[i].tilenr << 4);
+            // get the data of the current line
+            
+            if ( ppu.oam_sprites[i].y_flip)
+            {
+                //uint8_t idx = ( (mem.LY + 16) - ppu.oam_sprites[i].y );
+                tileByte1 = mem_read( currentTileAdr  + ((mem.LY + 16 - ppu.oam_sprites[i].y)*2) ) ;
+                tileByte2 = mem_read( currentTileAdr +  ((mem.LY + 16 - ppu.oam_sprites[i].y)*2) + 1 ) ;
+            }
+            else
+            {
+                tileByte1 = mem_read( currentTileAdr  + ((mem.LY + 16 - ppu.oam_sprites[i].y)*2) ) ;
+                tileByte2 = mem_read( currentTileAdr +  ((mem.LY + 16 - ppu.oam_sprites[i].y)*2) + 1 ) ;
+            }
+            
+            for ( uint8_t j = ppu.oam_sprites[i].x ; j < ppu.oam_sprites[i].x + 8 ; j++)
+            {   
+                pixelVal = ( (( tileByte1 >> (7-j) ) & 0x1 ) << 1) | ( (tileByte2 >> (7-j)) & 0x01);
+                if ( pixelVal != 0 && (j - 8) >=0)
+                    ppu.framebuffer[mem.LY][ j+8 ] = mono_pallete[ pixelVal ];
+            }
+
+        }
+
+
+    }
+/*    
+    uint8_t drawnSprites = 0;
+    uint8_t currentIndex = mem.LY;
 
     for (uint8_t j = 0; j < 40; j++){
 
@@ -245,33 +295,33 @@ void ppu_drawLine(){
             }
 
 
-            currTile = 0x8000 |  ppu.oam_sprites[j].tilenr << 4;
+            currentTileAdr = 0x8000 |  ppu.oam_sprites[j].tilenr << 4;
 
             if ( ppu.oam_sprites[j].y_flip){
-                uint8_t idx = (((ppu.oam_sprites[j].y-9)) - (VMEM(LY))  );
-                t1 = VMEM( currTile + idx*2   ) ;
-                t2 = VMEM( currTile + idx*2 +1 ) ;
+                uint8_t idx = (((ppu.oam_sprites[j].y-9)) - (mem.LY)  );
+                tileByte1 = mem_read( currentTileAdr + idx*2   ) ;
+                tileByte2 = mem_read( currentTileAdr + idx*2 +1 ) ;
             }
             else{
-                t1 = VMEM( currTile + ((VMEM(LY) - (ppu.oam_sprites[j].y-16)) *2)    ) ;
-                t2 = VMEM( currTile + ((VMEM(LY) - (ppu.oam_sprites[j].y-16)) *2) +1 ) ;
+                tileByte1 = mem_read( currentTileAdr + ((mem.LY - (ppu.oam_sprites[j].y-16)) *2)    ) ;
+                tileByte2 = mem_read( currentTileAdr + ((mem.LY  - (ppu.oam_sprites[j].y-16)) *2) +1 ) ;
             }
-            uint8_t pixelCol = 0;
+
             if (ppu.oam_sprites[j].x_flip ){
                 for (uint8_t i = 0; i < 8; i++){
-                    pixelCol = (!!(t1 & (0x01 << i))) + (!!(t2 & (0x01 << i)))*2;
+                    pixelVal = ( (( tileByte1 >> (7-i) ) & 0x1 ) << 1) | ( (tileByte2 >> (7-i)) & 0x01);
 
-                    if (pixelCol != 0){
-                        ppu.framebuffer[VMEM(LY)][ i + ppu.oam_sprites[j].x -8] = pixelCol;
+                    if (pixelVal != 0){
+                        ppu.framebuffer[mem.LY][ i + ppu.oam_sprites[j].x -8] = mono_pallete[ pixelVal ];
                     }
                 }
             }
             else {
                 for (uint8_t i = 0; i < 8; i++){
-                    pixelCol = (!!(t1 & (0x80 >> i))) + (!!(t2 & (0x80 >> i)))*2;
+                    pixelVal = ( (( tileByte1 >> (7-i) ) & 0x1 ) << 1) | ( (tileByte2 >> (7-i)) & 0x01);
                     
-                    if (pixelCol != 0){
-                        ppu.framebuffer[VMEM(LY)][ i + ppu.oam_sprites[j].x -8] = pixelCol;
+                    if (pixelVal != 0){
+                        ppu.framebuffer[mem.LY][ i + ppu.oam_sprites[j].x -8] = mono_pallete[ pixelVal ];
                     }
                     
                 }
@@ -283,6 +333,7 @@ void ppu_drawLine(){
         }
     }
 */
+
 
 }
 

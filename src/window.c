@@ -14,10 +14,11 @@ SDL_Renderer * mainRenderer;
 SDL_Texture * mainTexture;
 void *pixels;
 int pitch;
-
+uint16_t frameDuration; 
 
 void window_init()
 {
+    frameDuration = (1000 / 60);
     // SDL Main Window Init
 
     SDL_Init(SDL_INIT_VIDEO);   
@@ -30,15 +31,19 @@ void window_init()
     SDL_RenderClear(mainRenderer);
     //create texture to display pixels
     // use RGB555 color format
-    mainTexture = SDL_CreateTexture(mainRenderer, SDL_PIXELFORMAT_RGB555 , SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+    mainTexture = SDL_CreateTexture(mainRenderer, SDL_PIXELFORMAT_RGB888 , SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
 //draws current framebuffer on the texture
-void window_drawFrame(uint16_t framebuffer[SCREEN_HEIGHT][SCREEN_WIDTH])
+void window_drawFrame(uint32_t framebuffer[SCREEN_HEIGHT][SCREEN_WIDTH])
 {
+    static uint32_t lastTick;
+
+    while ( (SDL_GetTicks() - lastTick) < frameDuration );
+    lastTick = SDL_GetTicks();
     SDL_RenderClear(mainRenderer);
     SDL_LockTexture(mainTexture, NULL, &pixels, &pitch);
-    uint16_t * ptr = ((uint16_t *)pixels);
+    uint32_t * ptr = ((uint32_t *)pixels);
 
     // DRAWING OF THE DATA
     // just takes the framebuffer as it was written by the ppu
@@ -52,7 +57,8 @@ void window_drawFrame(uint16_t framebuffer[SCREEN_HEIGHT][SCREEN_WIDTH])
     // END OF DRAWING
     SDL_UnlockTexture(mainTexture); 
     SDL_RenderCopy(mainRenderer, mainTexture, NULL, NULL);
-    SDL_RenderPresent(mainRenderer);    
+    SDL_RenderPresent(mainRenderer); 
+    
 }
 
 void window_close()

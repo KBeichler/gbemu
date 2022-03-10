@@ -69,7 +69,7 @@ void cpu_init()
 
 
 
-void cpu_tick(void)
+uint8_t cpu_tick(void)
 {
 
     // check interrupts
@@ -719,11 +719,7 @@ void cpu_tick(void)
 
     // update main cpu clock
     cpu.clock += cpu.currentCycleLength;
-    
-    // update timers
-    cpu_updateTimer( cpu.currentCycleLength );
-
-
+    return cpu.currentCycleLength;
 }
 
 void cpu_setTAC(uint8_t val)

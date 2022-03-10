@@ -10,8 +10,8 @@ extern cpu_t cpu;
 extern mem_t mem;
 extern ppu_t ppu;
 
-char * testfile = "/media/storage/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
-//char * testfile = "/mnt/d/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
+//char * testfile = "/media/storage/Documents/DEV/projects/gbemu/builds/cpu_instrs1.gb";
+char * testfile = "/media/storage/Documents/DEV/projects/gbemu/builds/testroms/bgbtest.gb";
 uint8_t run = 0;
 
 
@@ -29,8 +29,8 @@ void cputest_debugPrint(){
     printf("\n@HL: 0x%02X\t +1 0x%02X\n", mem_read(cpu.HL), mem_read(cpu.HL+1));
     printf("IO Registers:\t\t IRQ_Enable: %x\n", cpu.irq_enable); 
     printf("IF: 0x%02X\tIE: 0x%02X\tLCDC: 0x%02X\tSTAT: 0x%02X\n", mem.IF, mem.IE, mem.LCDC, mem.STAT);
-    printf("SCY: 0x%X\t SCX: 0x%X\tLY: 0x%X\n", mem.SCY, mem.SCX, mem.LY);
-    printf("DIV: 0x%X\t TIMA: 0x%X\tTMA: 0x%X\thelper %d\tdivider: 0%d\n", mem.DIV, mem.TIMA, mem.TMA, cpu._TIMAhelper, cpu._TIMAdivider);
+    printf("SCY: 0x%X\t SCX: 0x%X\tLY: 0x%X\t OBJ: %x\n", mem.SCY, mem.SCX, mem.LY, ppu.objEnable);
+    //printf("DIV: 0x%X\t TIMA: 0x%X\tTMA: 0x%X\thelper %d\tdivider: 0%d\n", mem.DIV, mem.TIMA, mem.TMA, cpu._TIMAhelper, cpu._TIMAdivider);
     //printf("hRam: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", mem.hRam[0], mem.hRam[1], mem.hRam[2], mem.hRam[3], mem.hRam[4], mem.hRam[5]);
     printf("------------------------------------------------------------\n");
 
@@ -67,7 +67,7 @@ void cputest_fakepowerup()
     mem_write(0xFF1E, 0xBF)   ; 
     mem_write(0xFF20, 0xFF)   ; 
     mem_write(0xFF21, 0x00)   ; 
-    mem_write(0xFF22, 0x00)   ; 
+    mem_write(0xFF22, 0x00)   ;  
     mem_write(0xFF23, 0xBF)   ; 
     mem_write(0xFF24, 0x77)   ; 
     mem_write(0xFF25, 0xF3)   ; 
@@ -147,12 +147,20 @@ int main (int argc, char* argv[])
     while (run)
     {
         
-        cpu_tick();
-        while (ppu.clock <  ( cpu.clock >> 1) )
+        uint8_t lastCycle = cpu_tick();
+        // update timers
+        cpu_updateTimer( lastCycle );
+        lastCycle *= 2; 
+        while ( lastCycle-- )
         {
             ppu_tick();
         }
-        if (mem.DMA_active) { mem_doDMA(); mem.DMA_active = 0; }
+
+        if (mem.DMA_active == 1)
+        {
+            mem_doDMA();
+            mem.DMA_active = 0;
+        }
 
         // blarggs serial output        
         if (mem_read(0xff02) == 0x81) {
@@ -169,7 +177,7 @@ int main (int argc, char* argv[])
             // color from pallette for each pixel
             window_drawFrame(ppu.framebuffer);
 
-
+ 
         }
 
         if (cpu.PC == breakpoint || singlestep )

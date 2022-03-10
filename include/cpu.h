@@ -213,13 +213,14 @@ typedef struct cpu_t
 */
 void cpu_init(void);
 
-/* void cpu_tick(void)
+/* uint8_t cpu_tick(void)
     main cpu function
     2022.02.13: tick function. takes next argument from $PC and exectues the opcode
         also-> checks for interrups. if IRQ is pending, PC gets pushed on stack and IRQ Vecot gets loaded into PC
+        returns duration of last opcode in cycles
             
 */
-void cpu_tick(void);
+uint8_t cpu_tick(void);
 
 /* void cpu_updateTimer(uint8_t currentClock)
     updates the DIV and TIMA timer Registers. Currentclock ist the duraton of the last executed opcode. saved in cpu.currentclockCycle
