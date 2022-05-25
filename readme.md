@@ -1,7 +1,8 @@
 # Gameboy Emulator in C 
-Second Try
-I try to implement a GameBay Classic emualtor in C. Graphics is done via SDL2.
-**This is a learning project!**
+
+Bad implementation of a GameBay Classic emualtor in C. Graphics is done via SDL2.
+
+**earning project**
 
 #### Overview
 The system consits of one main .c file. All other functions are declared and defined in .h files. 
